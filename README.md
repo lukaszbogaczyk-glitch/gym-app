@@ -5,7 +5,7 @@ Osobista aplikacja na siłownię działająca w przeglądarce (także na telefon
 ## Funkcje
 - **Trening** – wybór dnia z planu, zapis serii (kg × powtórzenia), notatka po treningu
 - **Plan** – dni treningowe i ćwiczenia (serie × powtórzenia), edycja
-- **Ćwiczenia** – baza ponad 60 ćwiczeń pogrupowanych partiami mięśniowymi, z nazwą polską i angielską, wyszukiwarka i dodawanie do planu
+- **Ćwiczenia** – baza 178 ćwiczeń w 11 grupach pogrupowanych partiami mięśniowymi, z nazwą polską i angielską, wyszukiwarka i dodawanie do planu
 - **Postępy** – wykresy najcięższej serii, objętości treningowej i wagi ciała
 - **Porady** – porada dnia i ogólne wskazówki
 - **Obserwacje** – własne wpisy z kategoriami oraz automatyczne wnioski z danych

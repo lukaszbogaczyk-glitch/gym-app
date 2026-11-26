@@ -1,5 +1,5 @@
 // Baza ćwiczeń: partia mięśniowa → lista { pl, en, eq }
-// eq: sprzęt (sztanga, hantle, maszyna, wyciąg, masa ciała, kettlebell)
+// eq: sprzęt (sztanga, hantle, maszyna, wyciąg, masa ciała, kettlebell, inne)
 window.EXERCISE_DB = [
   { group: 'Klatka piersiowa', en: 'Chest', items: [
     { pl: 'Wyciskanie sztangi na ławce', en: 'Barbell Bench Press', eq: 'sztanga' },
@@ -10,7 +10,17 @@ window.EXERCISE_DB = [
     { pl: 'Krzyżowanie linek wyciągu', en: 'Cable Crossover', eq: 'wyciąg' },
     { pl: 'Wyciskanie na maszynie', en: 'Machine Chest Press', eq: 'maszyna' },
     { pl: 'Pompki', en: 'Push-up', eq: 'masa ciała' },
-    { pl: 'Pompki na poręczach', en: 'Dips', eq: 'masa ciała' }
+    { pl: 'Pompki na poręczach', en: 'Dips', eq: 'masa ciała' },
+    { pl: 'Wyciskanie sztangi na ławce ujemnej', en: 'Decline Barbell Bench Press', eq: 'sztanga' },
+    { pl: 'Wyciskanie hantli na ławce ujemnej', en: 'Decline Dumbbell Press', eq: 'hantle' },
+    { pl: 'Wyciskanie na suwnicy Smitha', en: 'Smith Machine Bench Press', eq: 'maszyna' },
+    { pl: 'Rozpiętki na maszynie (butterfly)', en: 'Pec Deck Fly', eq: 'maszyna' },
+    { pl: 'Krzyżowanie linek z dołu', en: 'Low-to-High Cable Fly', eq: 'wyciąg' },
+    { pl: 'Przenoszenie hantla za głowę', en: 'Dumbbell Pullover', eq: 'hantle' },
+    { pl: 'Wyciskanie hantli chwytem neutralnym', en: 'Neutral-Grip Dumbbell Press', eq: 'hantle' },
+    { pl: 'Pompki z nogami na podwyższeniu', en: 'Decline Push-up', eq: 'masa ciała' },
+    { pl: 'Wyciskanie na podłodze', en: 'Floor Press', eq: 'sztanga' },
+    { pl: 'Wyciskanie sztangi z pauzą', en: 'Paused Bench Press', eq: 'sztanga' }
   ]},
   { group: 'Plecy', en: 'Back', items: [
     { pl: 'Martwy ciąg', en: 'Deadlift', eq: 'sztanga' },
@@ -22,7 +32,22 @@ window.EXERCISE_DB = [
     { pl: 'Wiosłowanie na wyciągu siedząc', en: 'Seated Cable Row', eq: 'wyciąg' },
     { pl: 'Wiosłowanie T-sztangą', en: 'T-Bar Row', eq: 'sztanga' },
     { pl: 'Prostowanie tułowia na ławce rzymskiej', en: 'Back Extension', eq: 'masa ciała' },
-    { pl: 'Szrugsy ze sztangą', en: 'Barbell Shrug', eq: 'sztanga' }
+    { pl: 'Szrugsy ze sztangą', en: 'Barbell Shrug', eq: 'sztanga' },
+    { pl: 'Martwy ciąg sumo', en: 'Sumo Deadlift', eq: 'sztanga' },
+    { pl: 'Martwy ciąg z trap bar', en: 'Trap Bar Deadlift', eq: 'sztanga' },
+    { pl: 'Wiosłowanie Pendlay', en: 'Pendlay Row', eq: 'sztanga' },
+    { pl: 'Wiosłowanie hantlami w opadzie', en: 'Bent-Over Dumbbell Row', eq: 'hantle' },
+    { pl: 'Wiosłowanie na maszynie', en: 'Machine Row', eq: 'maszyna' },
+    { pl: 'Wiosłowanie na ławce skośnej', en: 'Chest-Supported Row', eq: 'hantle' },
+    { pl: 'Ściąganie drążka wąskim chwytem', en: 'Close-Grip Lat Pulldown', eq: 'wyciąg' },
+    { pl: 'Ściąganie drążka prostymi ramionami', en: 'Straight-Arm Pulldown', eq: 'wyciąg' },
+    { pl: 'Podciąganie z obciążeniem', en: 'Weighted Pull-up', eq: 'masa ciała' },
+    { pl: 'Podciąganie australijskie', en: 'Inverted Row', eq: 'masa ciała' },
+    { pl: 'Wiosłowanie Meadows', en: 'Meadows Row', eq: 'sztanga' },
+    { pl: 'Szrugsy z hantlami', en: 'Dumbbell Shrug', eq: 'hantle' },
+    { pl: 'Rack pull', en: 'Rack Pull', eq: 'sztanga' },
+    { pl: 'Dzień dobry', en: 'Good Morning', eq: 'sztanga' },
+    { pl: 'Superman', en: 'Superman', eq: 'masa ciała' }
   ]},
   { group: 'Barki', en: 'Shoulders', items: [
     { pl: 'Wyciskanie żołnierskie', en: 'Overhead Press', eq: 'sztanga' },
@@ -32,7 +57,18 @@ window.EXERCISE_DB = [
     { pl: 'Unoszenie hantli przodem', en: 'Front Raise', eq: 'hantle' },
     { pl: 'Odwrotne rozpiętki', en: 'Reverse Fly', eq: 'hantle' },
     { pl: 'Face pull', en: 'Face Pull', eq: 'wyciąg' },
-    { pl: 'Podciąganie sztangi wzdłuż tułowia', en: 'Upright Row', eq: 'sztanga' }
+    { pl: 'Podciąganie sztangi wzdłuż tułowia', en: 'Upright Row', eq: 'sztanga' },
+    { pl: 'Wyciskanie hantli siedząc', en: 'Seated Dumbbell Press', eq: 'hantle' },
+    { pl: 'Wyciskanie na maszynie nad głowę', en: 'Machine Shoulder Press', eq: 'maszyna' },
+    { pl: 'Push press', en: 'Push Press', eq: 'sztanga' },
+    { pl: 'Wyciskanie sztangi zza karku', en: 'Behind-the-Neck Press', eq: 'sztanga' },
+    { pl: 'Unoszenie ramion bokiem na wyciągu', en: 'Cable Lateral Raise', eq: 'wyciąg' },
+    { pl: 'Unoszenie bokiem na maszynie', en: 'Machine Lateral Raise', eq: 'maszyna' },
+    { pl: 'Odwrotne rozpiętki na maszynie', en: 'Reverse Pec Deck', eq: 'maszyna' },
+    { pl: 'Unoszenie hantli w opadzie', en: 'Bent-Over Lateral Raise', eq: 'hantle' },
+    { pl: 'Wyciskanie landmine', en: 'Landmine Press', eq: 'sztanga' },
+    { pl: 'Rotacja zewnętrzna na wyciągu', en: 'Cable External Rotation', eq: 'wyciąg' },
+    { pl: 'Pompki w staniu na rękach', en: 'Handstand Push-up', eq: 'masa ciała' }
   ]},
   { group: 'Biceps', en: 'Biceps', items: [
     { pl: 'Uginanie ramion ze sztangą', en: 'Barbell Curl', eq: 'sztanga' },
@@ -40,19 +76,42 @@ window.EXERCISE_DB = [
     { pl: 'Uginanie młotkowe', en: 'Hammer Curl', eq: 'hantle' },
     { pl: 'Uginanie na modlitewniku', en: 'Preacher Curl', eq: 'sztanga' },
     { pl: 'Uginanie na wyciągu', en: 'Cable Curl', eq: 'wyciąg' },
-    { pl: 'Uginanie skoncentrowane', en: 'Concentration Curl', eq: 'hantle' }
+    { pl: 'Uginanie skoncentrowane', en: 'Concentration Curl', eq: 'hantle' },
+    { pl: 'Uginanie ramion ze sztangą łamaną', en: 'EZ-Bar Curl', eq: 'sztanga' },
+    { pl: 'Uginanie na ławce skośnej', en: 'Incline Dumbbell Curl', eq: 'hantle' },
+    { pl: 'Uginanie z supinacją', en: 'Supinated Dumbbell Curl', eq: 'hantle' },
+    { pl: 'Uginanie na modlitewniku z hantlem', en: 'Dumbbell Preacher Curl', eq: 'hantle' },
+    { pl: 'Uginanie na wyciągu linką (młotkowe)', en: 'Cable Rope Hammer Curl', eq: 'wyciąg' },
+    { pl: 'Uginanie Bayesian na wyciągu', en: 'Bayesian Cable Curl', eq: 'wyciąg' },
+    { pl: 'Uginanie pająk', en: 'Spider Curl', eq: 'hantle' },
+    { pl: 'Uginanie na maszynie', en: 'Machine Biceps Curl', eq: 'maszyna' },
+    { pl: 'Uginanie odwrotnym chwytem', en: 'Reverse Curl', eq: 'sztanga' },
+    { pl: 'Uginanie Zottman', en: 'Zottman Curl', eq: 'hantle' }
   ]},
   { group: 'Triceps', en: 'Triceps', items: [
     { pl: 'Wyciskanie francuskie', en: 'Skull Crusher', eq: 'sztanga' },
     { pl: 'Prostowanie ramion na wyciągu', en: 'Triceps Pushdown', eq: 'wyciąg' },
     { pl: 'Wyciskanie wąsko na ławce', en: 'Close-Grip Bench Press', eq: 'sztanga' },
     { pl: 'Prostowanie ramienia z hantlem nad głową', en: 'Overhead Triceps Extension', eq: 'hantle' },
-    { pl: 'Pompki w podporze tyłem', en: 'Bench Dips', eq: 'masa ciała' }
+    { pl: 'Pompki w podporze tyłem', en: 'Bench Dips', eq: 'masa ciała' },
+    { pl: 'Prostowanie ramion linką na wyciągu', en: 'Rope Pushdown', eq: 'wyciąg' },
+    { pl: 'Prostowanie ramion nad głową na wyciągu', en: 'Overhead Cable Extension', eq: 'wyciąg' },
+    { pl: 'Prostowanie ramienia w opadzie (kickback)', en: 'Dumbbell Kickback', eq: 'hantle' },
+    { pl: 'Wyciskanie francuskie z hantlami', en: 'Dumbbell Skull Crusher', eq: 'hantle' },
+    { pl: 'Wyciskanie francuskie siedząc', en: 'Seated EZ-Bar Overhead Extension', eq: 'sztanga' },
+    { pl: 'Pompki diamentowe', en: 'Diamond Push-up', eq: 'masa ciała' },
+    { pl: 'Prostowanie ramion jednorącz na wyciągu', en: 'Single-Arm Cable Pushdown', eq: 'wyciąg' },
+    { pl: 'Pompki na poręczach na maszynie', en: 'Machine Dip', eq: 'maszyna' },
+    { pl: 'Wyciskanie JM', en: 'JM Press', eq: 'sztanga' }
   ]},
   { group: 'Przedramiona', en: 'Forearms', items: [
     { pl: 'Uginanie nadgarstków', en: 'Wrist Curl', eq: 'sztanga' },
     { pl: 'Spacer farmera', en: "Farmer's Walk", eq: 'hantle' },
-    { pl: 'Zwis na drążku', en: 'Dead Hang', eq: 'masa ciała' }
+    { pl: 'Zwis na drążku', en: 'Dead Hang', eq: 'masa ciała' },
+    { pl: 'Odwrotne uginanie nadgarstków', en: 'Reverse Wrist Curl', eq: 'sztanga' },
+    { pl: 'Nawijanie linki z ciężarkiem', en: 'Wrist Roller', eq: 'inne' },
+    { pl: 'Trzymanie talerzy chwytem szczypcowym', en: 'Plate Pinch', eq: 'inne' },
+    { pl: 'Uginanie nadgarstków za plecami', en: 'Behind-the-Back Wrist Curl', eq: 'sztanga' }
   ]},
   { group: 'Uda (czworogłowe)', en: 'Quads', items: [
     { pl: 'Przysiad ze sztangą', en: 'Back Squat', eq: 'sztanga' },
@@ -62,7 +121,19 @@ window.EXERCISE_DB = [
     { pl: 'Prostowanie nóg na maszynie', en: 'Leg Extension', eq: 'maszyna' },
     { pl: 'Wykroki z hantlami', en: 'Dumbbell Lunge', eq: 'hantle' },
     { pl: 'Przysiad bułgarski', en: 'Bulgarian Split Squat', eq: 'hantle' },
-    { pl: 'Hack przysiad', en: 'Hack Squat', eq: 'maszyna' }
+    { pl: 'Hack przysiad', en: 'Hack Squat', eq: 'maszyna' },
+    { pl: 'Przysiad na suwnicy Smitha', en: 'Smith Machine Squat', eq: 'maszyna' },
+    { pl: 'Przysiad z pauzą', en: 'Pause Squat', eq: 'sztanga' },
+    { pl: 'Przysiad z hantlami', en: 'Dumbbell Squat', eq: 'hantle' },
+    { pl: 'Wejścia na skrzynię', en: 'Step-up', eq: 'hantle' },
+    { pl: 'Wykroki chodzone', en: 'Walking Lunge', eq: 'hantle' },
+    { pl: 'Wykroki w tył', en: 'Reverse Lunge', eq: 'hantle' },
+    { pl: 'Przysiad sissy', en: 'Sissy Squat', eq: 'masa ciała' },
+    { pl: 'Przysiad pistoletowy', en: 'Pistol Squat', eq: 'masa ciała' },
+    { pl: 'Przysiad na pasie (belt squat)', en: 'Belt Squat', eq: 'maszyna' },
+    { pl: 'Pendulum squat', en: 'Pendulum Squat', eq: 'maszyna' },
+    { pl: 'Przysiad pod ścianą', en: 'Wall Sit', eq: 'masa ciała' },
+    { pl: 'Skoki na skrzynię', en: 'Box Jump', eq: 'masa ciała' }
   ]},
   { group: 'Dwugłowe uda i pośladki', en: 'Hamstrings & Glutes', items: [
     { pl: 'Martwy ciąg rumuński', en: 'Romanian Deadlift', eq: 'sztanga' },
@@ -70,11 +141,29 @@ window.EXERCISE_DB = [
     { pl: 'Hip thrust', en: 'Hip Thrust', eq: 'sztanga' },
     { pl: 'Mostek biodrowy', en: 'Glute Bridge', eq: 'masa ciała' },
     { pl: 'Swing kettlebell', en: 'Kettlebell Swing', eq: 'kettlebell' },
-    { pl: 'Odwodzenie nóg na maszynie', en: 'Hip Abduction', eq: 'maszyna' }
+    { pl: 'Odwodzenie nóg na maszynie', en: 'Hip Abduction', eq: 'maszyna' },
+    { pl: 'Martwy ciąg na prostych nogach', en: 'Stiff-Leg Deadlift', eq: 'sztanga' },
+    { pl: 'Martwy ciąg rumuński z hantlami', en: 'Dumbbell Romanian Deadlift', eq: 'hantle' },
+    { pl: 'Martwy ciąg na jednej nodze', en: 'Single-Leg Romanian Deadlift', eq: 'hantle' },
+    { pl: 'Uginanie nóg siedząc', en: 'Seated Leg Curl', eq: 'maszyna' },
+    { pl: 'Uginanie nóg stojąc jednonóż', en: 'Standing Leg Curl', eq: 'maszyna' },
+    { pl: 'Nordic curl', en: 'Nordic Hamstring Curl', eq: 'masa ciała' },
+    { pl: 'Glute ham raise', en: 'Glute-Ham Raise', eq: 'maszyna' },
+    { pl: 'Hip thrust na maszynie', en: 'Machine Hip Thrust', eq: 'maszyna' },
+    { pl: 'Hip thrust jednonóż', en: 'Single-Leg Hip Thrust', eq: 'masa ciała' },
+    { pl: 'Odwodzenie nogi na wyciągu', en: 'Cable Kickback', eq: 'wyciąg' },
+    { pl: 'Przyciąganie wyciągu między nogami', en: 'Cable Pull-Through', eq: 'wyciąg' },
+    { pl: 'Przywodzenie nóg na maszynie', en: 'Hip Adduction', eq: 'maszyna' },
+    { pl: 'Odwrotna hiperekstensja', en: 'Reverse Hyperextension', eq: 'maszyna' }
   ]},
   { group: 'Łydki', en: 'Calves', items: [
     { pl: 'Wspięcia na palce', en: 'Standing Calf Raise', eq: 'maszyna' },
-    { pl: 'Wspięcia na palce siedząc', en: 'Seated Calf Raise', eq: 'maszyna' }
+    { pl: 'Wspięcia na palce siedząc', en: 'Seated Calf Raise', eq: 'maszyna' },
+    { pl: 'Wspięcia na palce na suwnicy', en: 'Leg Press Calf Raise', eq: 'maszyna' },
+    { pl: 'Wspięcia na palce z hantlem jednonóż', en: 'Single-Leg Calf Raise', eq: 'hantle' },
+    { pl: 'Wspięcia na palce w Smithie', en: 'Smith Machine Calf Raise', eq: 'maszyna' },
+    { pl: 'Wspięcia „ośle”', en: 'Donkey Calf Raise', eq: 'maszyna' },
+    { pl: 'Unoszenie stóp (piszczelowy)', en: 'Tibialis Raise', eq: 'masa ciała' }
   ]},
   { group: 'Brzuch', en: 'Core', items: [
     { pl: 'Deska', en: 'Plank', eq: 'masa ciała' },
@@ -82,6 +171,34 @@ window.EXERCISE_DB = [
     { pl: 'Unoszenie nóg w zwisie', en: 'Hanging Leg Raise', eq: 'masa ciała' },
     { pl: 'Allahy (spięcia na wyciągu)', en: 'Cable Crunch', eq: 'wyciąg' },
     { pl: 'Kółko do brzucha', en: 'Ab Wheel Rollout', eq: 'masa ciała' },
-    { pl: 'Rosyjskie skręty', en: 'Russian Twist', eq: 'masa ciała' }
+    { pl: 'Rosyjskie skręty', en: 'Russian Twist', eq: 'masa ciała' },
+    { pl: 'Deska boczna', en: 'Side Plank', eq: 'masa ciała' },
+    { pl: 'Unoszenie nóg leżąc', en: 'Lying Leg Raise', eq: 'masa ciała' },
+    { pl: 'Unoszenie kolan w podporze', en: 'Captain\'s Chair Knee Raise', eq: 'maszyna' },
+    { pl: 'Pallof press', en: 'Pallof Press', eq: 'wyciąg' },
+    { pl: 'Drwal na wyciągu', en: 'Cable Woodchopper', eq: 'wyciąg' },
+    { pl: 'Martwy robak', en: 'Dead Bug', eq: 'masa ciała' },
+    { pl: 'Scyzoryki', en: 'V-up', eq: 'masa ciała' },
+    { pl: 'Rowerek', en: 'Bicycle Crunch', eq: 'masa ciała' },
+    { pl: 'Wspinaczka (mountain climbers)', en: 'Mountain Climber', eq: 'masa ciała' },
+    { pl: 'Hollow hold', en: 'Hollow Body Hold', eq: 'masa ciała' },
+    { pl: 'Spacer walizkowy', en: 'Suitcase Carry', eq: 'hantle' },
+    { pl: 'Wycieraczki', en: 'Windshield Wiper', eq: 'masa ciała' }
+  ]},
+  { group: 'Całe ciało i kondycja', en: 'Full Body & Conditioning', items: [
+    { pl: 'Zarzut sztangi na klatkę', en: 'Power Clean', eq: 'sztanga' },
+    { pl: 'Rwanie sztangi', en: 'Snatch', eq: 'sztanga' },
+    { pl: 'Podrzut', en: 'Clean and Jerk', eq: 'sztanga' },
+    { pl: 'Thruster', en: 'Thruster', eq: 'sztanga' },
+    { pl: 'Burpees', en: 'Burpee', eq: 'masa ciała' },
+    { pl: 'Turkish get-up', en: 'Turkish Get-up', eq: 'kettlebell' },
+    { pl: 'Pchanie sań', en: 'Sled Push', eq: 'inne' },
+    { pl: 'Uderzenia piłką lekarską', en: 'Medicine Ball Slam', eq: 'inne' },
+    { pl: 'Liny bojowe', en: 'Battle Ropes', eq: 'inne' },
+    { pl: 'Wioślarz', en: 'Rowing Machine', eq: 'maszyna' },
+    { pl: 'Rower stacjonarny', en: 'Stationary Bike', eq: 'maszyna' },
+    { pl: 'Bieżnia', en: 'Treadmill', eq: 'maszyna' },
+    { pl: 'Orbitrek', en: 'Elliptical', eq: 'maszyna' },
+    { pl: 'Skakanka', en: 'Jump Rope', eq: 'inne' }
   ]}
 ];
