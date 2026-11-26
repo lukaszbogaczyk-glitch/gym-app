@@ -129,16 +129,43 @@ svg.chart text{fill:var(--muted);font-family:var(--f-num);font-size:10px}
 .eqhead .eqic{color:var(--accent)}
 .chips button.eqchip{display:inline-flex;align-items:center;gap:5px}
 .chips button .eqic{width:15px;height:15px}
+.mic{display:inline-flex;align-items:center;gap:6px}
+.mic.rec{background:var(--warn);border-color:var(--warn);color:#fff}
+@media (prefers-reduced-motion:no-preference){.mic.rec svg{animation:pulse 1s ease-in-out infinite}}
+@keyframes pulse{50%{transform:scale(1.25)}}
+.exlink{all:unset;cursor:pointer;font:inherit;color:inherit;text-align:left}
+.exlink:hover,.exlink:focus-visible{color:var(--accent);text-decoration:underline;text-underline-offset:3px}
+.exlink:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.infoi{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;border:1.5px solid var(--muted);color:var(--muted);font:700 11px/1 var(--f-body);vertical-align:2px;margin-left:2px}
+.sheet-bg{position:fixed;inset:0;background:rgba(10,14,24,.5);z-index:15}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:16;max-height:88vh;overflow-y:auto;background:var(--surface);border-radius:18px 18px 0 0;padding:10px max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:14px;max-width:640px;margin:0 auto}
+.sheet-grab{width:40px;height:4px;border-radius:2px;background:var(--line);align-self:center}
+.sheet h2{font-size:1.6rem}
+.steps,.tips{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;line-height:1.5}
+.steps li::marker{font-family:var(--f-num);color:var(--accent);font-weight:700}
+.tips li::marker{color:var(--energy)}
+@media (prefers-reduced-motion:no-preference){.sheet{animation:up .25s ease-out}}
+@keyframes up{from{transform:translateY(30px);opacity:.001}to{transform:none;opacity:1}}
+.aibtn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px}
+.aibtn .eqic{width:20px;height:20px}
+.aicard{border-color:var(--accent)}
+.aithumb{width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.aires{background:var(--bg);border-radius:10px;padding:12px}
+.aires input,.aires select{background:var(--surface)}
+.aierr{margin:0;color:var(--warn);font-size:.88rem}
+button[disabled]{opacity:.6;cursor:progress}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-weight:600;z-index:9}
 @media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="mshade" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".38"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".18"/></linearGradient></defs></svg>
 <div class="wrap" id="app"></div>
+<div id="sheet"></div>
 <nav class="tabs" id="tabs"></nav>
 <div class="toast" id="toast" hidden></div>
 
 <script src="exercises.js"></script>
+<script src="technique.js"></script>
 <script>
 const KEY='silownia.v1';
 const uid=()=>Math.random().toString(36).slice(2,9);
@@ -189,7 +216,7 @@ const TABS=[
   ['notatki','Obserwacje','<path d="M5 4h10l4 4v12H5z"/><path d="M9 12h6M9 16h4"/>']
 ];
 let tab=(location.hash.slice(1)||'trening');if(!TABS.some(t=>t[0]===tab))tab='trening';
-let ui={q:'',grp:'',eq:'',target:null,dayId:null,draft:null,ex:null,editDay:null,confirmClear:false};
+let ui={exInfo:null,ai:{open:false,desc:'',photo:null,photoUrl:'',busy:false,result:null,error:''},q:'',grp:'',eq:'',target:null,dayId:null,draft:null,ex:null,editDay:null,confirmClear:false};
 
 function renderTabs(){
   document.getElementById('tabs').innerHTML=TABS.map(([id,l,ic])=>`<button data-tab="${id}" ${id===tab?'aria-current="page"':''}><svg viewBox="0 0 24 24">${ic}</svg>${l}</button>`).join('');
@@ -203,8 +230,13 @@ function banner(){
 }
 
 /* ---------- baza ćwiczeń ---------- */
-const DB=(window.EXERCISE_DB||[]);
-const DB_FLAT=DB.flatMap(g=>g.items.map(i=>({...i,group:g.group,groupEn:g.en})));
+let DB=[],DB_FLAT=[];
+// baza z pliku + ćwiczenia dodane przez Ciebie (S.customEx), oznaczone custom:true
+function rebuildDB(){
+  DB=(window.EXERCISE_DB||[]).map(g=>({...g,items:[...g.items,...(S.customEx||[]).filter(c=>c.groupEn===g.en).map(c=>({pl:c.pl,en:c.en,eq:c.eq,tip:c.tip,steps:c.steps,tips:c.tips,custom:true}))]}));
+  DB_FLAT=DB.flatMap(g=>g.items.map(i=>({...i,group:g.group,groupEn:g.en})));
+}
+rebuildDB();
 const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ł/g,'l');
 function findEx(name){const n=norm(name);return DB_FLAT.find(i=>norm(i.pl)===n||norm(i.en)===n)}
 function enName(name){const f=findEx(name);return f&&norm(f.en)!==norm(name)?f.en:''}
@@ -215,18 +247,137 @@ function dbResults(){
   const groups=DB.filter(g=>!ui.grp||g.group===ui.grp).map(g=>({...g,items:g.items.filter(i=>(!ui.eq||i.eq===ui.eq)&&(!q||norm(i.pl).includes(q)||norm(i.en).includes(q)||norm(i.eq).includes(q)))})).filter(g=>g.items.length);
   if(!groups.length)return '<p class="muted">Nic nie znaleziono. Własne ćwiczenie możesz dodać w zakładce Plan.</p>';
   const inPlan=new Set(S.plan.find(d=>d.id===ui.target)?.exercises.map(e=>norm(e.name))||[]);
-  return groups.map(g=>`<section class="stack"><div class="ghead">${bodyMap([g.en],60)}<h2>${esc(g.group)} <span class="en" style="font-family:var(--f-body);text-transform:none">${esc(g.en)}</span></h2><span class="gchip" style="--c:${GROUP_COLOR[g.en]}"><i></i>${g.items.length}</span></div><div class="card">${EQUIP.filter(([k])=>g.items.some(i=>i.eq===k)).map(([k,label])=>`<div class="eqhead">${eqIcon(k)}<span>${label}</span><span class="muted num">${g.items.filter(i=>i.eq===k).length}</span></div>${g.items.filter(i=>i.eq===k).map(i=>`<div class="dbrow"><div><div>${esc(i.pl)}</div><div class="en">${esc(i.en)}</div></div>
+  return groups.map(g=>`<section class="stack"><div class="ghead">${bodyMap([g.en],60)}<h2>${esc(g.group)} <span class="en" style="font-family:var(--f-body);text-transform:none">${esc(g.en)}</span></h2><span class="gchip" style="--c:${GROUP_COLOR[g.en]}"><i></i>${g.items.length}</span></div><div class="card">${EQUIP.filter(([k])=>g.items.some(i=>i.eq===k)).map(([k,label])=>`<div class="eqhead">${eqIcon(k)}<span>${label}</span><span class="muted num">${g.items.filter(i=>i.eq===k).length}</span></div>${g.items.filter(i=>i.eq===k).map(i=>`<div class="dbrow"><div><button class="exlink" data-act="exInfo" data-name="${esc(i.pl)}">${esc(i.pl)}</button><div class="en">${esc(i.en)}${i.custom?' · <span class="chip" style="font-size:.66rem">dodane przez AI</span>':''}</div></div>
     ${!ui.target?'':inPlan.has(norm(i.pl))?'<span class="chip good">W planie</span>':`<button data-act="addFromDb" data-name="${esc(i.pl)}">+ Dodaj</button>`}</div>`).join('')}`).join('')}</div></section>`).join('');
 }
 function viewBaza(){
   if(ui.target&&!S.plan.some(d=>d.id===ui.target))ui.target=null;
   if(!ui.target&&S.plan[0])ui.target=S.plan[0].id;
-  return `<header class="top"><div><div class="eyebrow">${DB_FLAT.length} ćwiczeń · ${DB.length} partii</div><h1>Baza ćwiczeń</h1></div></header>
+  return `<header class="top"><div><div class="eyebrow">${DB_FLAT.length} ćwiczeń · ${DB.length} partii</div><h1>Baza ćwiczeń</h1><div class="muted" style="font-size:.85rem;margin-top:4px">Stuknij nazwę ćwiczenia, żeby zobaczyć technikę i porady.</div></div></header>
   <div class="card"><input id="db-q" type="search" placeholder="Szukaj po polsku lub angielsku, np. przysiad, row, hantle" value="${esc(ui.q)}" aria-label="Szukaj ćwiczenia">
   <div class="chips"><button data-act="grp" data-g="" aria-pressed="${!ui.grp}">Wszystkie</button>${DB.map(g=>`<button data-act="grp" data-g="${esc(g.group)}" aria-pressed="${ui.grp===g.group}">${esc(g.group)}</button>`).join('')}</div>
   <div class="chips"><button data-act="eq" data-e="" aria-pressed="${!ui.eq}">Każdy sprzęt</button>${EQUIP.map(([k,l])=>`<button data-act="eq" data-e="${k}" aria-pressed="${ui.eq===k}" class="eqchip">${eqIcon(k)}${l}</button>`).join('')}</div>
   ${S.plan.length?`<div class="row"><label class="eyebrow" for="db-target">Dodawaj do</label><select id="db-target">${S.plan.map(d=>`<option value="${d.id}" ${d.id===ui.target?'selected':''}>${esc(d.name)}</option>`).join('')}</select></div>`:'<p class="muted" style="margin:0">Dodaj dzień w Planie, żeby wrzucać do niego ćwiczenia z bazy.</p>'}</div>
+  ${aiPanel()}
   <div id="db-results" class="stack">${dbResults()}</div>`;
+}
+
+/* ---------- karta ćwiczenia: technika i porady ---------- */
+function techOf(name){
+  const f=findEx(name);const t=f&&window.EXERCISE_TECH?.[f.pl];
+  if(t)return{steps:t[0],tips:t[1]};
+  if(f&&(f.steps||f.tips||f.tip))return{steps:f.steps||[],tips:f.tips||(f.tip?[f.tip]:[])};
+  return null;
+}
+function exSheet(){
+  const name=ui.exInfo;if(!name)return'';
+  const f=findEx(name),t=techOf(name),b=bestOf(name);
+  const eq=f&&EQUIP.find(e=>e[0]===f.eq);
+  return `<div class="sheet-bg" data-act="exClose"></div><div class="sheet" role="dialog" aria-label="${esc(name)}">
+  <div class="sheet-grab"></div>
+  <div class="exhead">${f?bodyMap([f.groupEn],84,{views:'both'}):''}<div class="stack" style="gap:4px"><h2>${esc(f?f.pl:name)}</h2>${f?`<div class="en">${esc(f.en)}</div><div class="row" style="gap:6px">${gchip(f.groupEn)}${eq?`<span class="gchip">${eqIcon(eq[0])}${eq[1]}</span>`:''}</div>`:''}</div></div>
+  ${b?`<div class="refs"><div><span class="eyebrow">Twój rekord</span><span class="num">${fmtKg(b.w)} kg × ${b.wr}</span></div><div><span class="eyebrow">Najwięcej powtórzeń</span><span class="num">${b.r}</span></div></div>`:''}
+  ${t?`<section class="stack" style="gap:8px"><h3>Technika</h3><ol class="steps">${t.steps.map(x=>`<li>${esc(x)}</li>`).join('')}</ol></section>
+  <section class="stack" style="gap:8px"><h3>Porady</h3><ul class="tips">${t.tips.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></section>`
+   :'<p class="muted">Brak opisu techniki dla tego ćwiczenia. Ćwiczenia dodane przez AI dostają opis automatycznie.</p>'}
+  <button class="primary" data-act="exClose">Zamknij</button></div>`;
+}
+
+/* ---------- AI: rozpoznawanie ćwiczeń z opisu lub zdjęcia ---------- */
+// Dwie drogi: wbudowany Claude (gdy aplikacja jest otwarta z claude.ai) albo własny klucz API (wszędzie indziej).
+let sampleApi=null;
+(async()=>{try{sampleApi=await window.claude?.use?.('sample')}catch(e){}if(tab==='baza'&&ui.ai.open)render()})();
+/* dyktowanie po polsku: wbudowane dyktowanie claude.ai albo rozpoznawanie mowy przeglądarki */
+let dictApi=null;const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+(async()=>{try{dictApi=await window.claude?.use?.('dictation')}catch(e){}if(dictApi){dictApi.onPartial(({text})=>voiceShow(text,false));dictApi.onFinal(({text})=>voiceShow(text,true));dictApi.onState(({state})=>{voiceSet(state==='listening'||state==='starting')})}if(tab==='baza'&&ui.ai.open)render()})();
+const canVoice=()=>!!(dictApi||SR);
+let voice={on:false,base:'',rec:null};
+function voiceShow(text,final){
+  const t=document.getElementById('ai-desc');
+  const joined=(voice.base&&text?voice.base.replace(/\s*$/,' '):voice.base)+text;
+  if(final){voice.base=joined;ui.ai.desc=joined}
+  if(t)t.value=final?joined:joined;
+}
+function voiceSet(on){voice.on=on;const b=document.getElementById('ai-mic');if(b){b.classList.toggle('rec',on);b.setAttribute('aria-pressed',on);b.querySelector('span').textContent=on?'Słucham… stuknij, by zakończyć':'Podyktuj'}if(!on){const t=document.getElementById('ai-desc');if(t){t.value=ui.ai.desc}}}
+function voiceToggle(){
+  if(voice.on){if(dictApi)dictApi.stop().catch(()=>{});else voice.rec?.stop();return}
+  voice.base=ui.ai.desc;
+  if(dictApi){dictApi.start({language:'pl'}).catch(e=>{voiceSet(false);if(e?.code==='not_granted')toast('Nie zezwolono na użycie mikrofonu');else if(e?.code!=='stopped')toast('Dyktowanie jest teraz niedostępne')});voiceSet(true);return}
+  const rec=new SR();rec.lang='pl-PL';rec.interimResults=true;rec.continuous=true;
+  rec.onresult=e=>{let fin='',part='';for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)fin+=t;else part+=t}if(fin)voiceShow(fin.trim(),true);if(part)voiceShow(part.trim(),false)};
+  rec.onerror=e=>{if(e.error==='not-allowed')toast('Nie zezwolono na użycie mikrofonu')};
+  rec.onend=()=>voiceSet(false);
+  voice.rec=rec;try{rec.start();voiceSet(true)}catch(e){toast('Dyktowanie jest teraz niedostępne')}
+}
+const aiMode=()=>sampleApi?'claude':S.ai?.key?'key':null;
+const AI_MODELS=[['claude-opus-5-5','Claude Opus 5.5 (najlepszy, ok. 2–5 gr za zapytanie)'],['claude-haiku-5-5','Claude Haiku 5.5 (najtańszy)']];
+function aiPrompt(desc,hasPhoto){
+  const groups=DB.map(g=>`${g.en} = ${g.group}`).join('; ');
+  return `Jesteś trenerem personalnym i pomagasz prowadzić dziennik siłowni po polsku.
+${hasPhoto?'Na zdjęciu jest sprzęt lub ćwiczenie z siłowni. Rozpoznaj, co to jest i jakie ćwiczenie się na tym wykonuje.':''}
+${desc?`Opis od użytkownika: "${desc.replace(/"/g,"'")}"`:''}
+Podaj poprawną, powszechnie używaną nazwę ćwiczenia po polsku i po angielsku.
+Dozwolone partie (pole group, podaj wartość angielską): ${groups}.
+Dozwolony sprzęt (pole eq): sztanga, hantle, kettlebell, wyciąg, maszyna, masa ciała, inne.
+Odpowiedz WYŁĄCZNIE obiektem JSON, bez komentarza, w formacie:
+{"pl":"nazwa po polsku","en":"English name","group":"jedna z partii po angielsku","eq":"sprzęt","tip":"jedno zdanie wskazówki technicznej po polsku","steps":["3 krótkie kroki techniki po polsku"],"tips":["3 krótkie porady po polsku, ostatnia o częstym błędzie"],"confidence":"wysoka|średnia|niska","note":"krótka uwaga po polsku, jeśli coś jest niepewne, inaczej pusty"}`;
+}
+function parseJson(t){const m=String(t).match(/\{[\s\S]*\}/);if(!m)throw new Error('AI nie zwróciło danych w oczekiwanym formacie.');return JSON.parse(m[0])}
+const toB64=blob=>new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(String(fr.result).split(',')[1]);fr.onerror=rej;fr.readAsDataURL(blob)});
+async function shrink(file){ // zdjęcie z telefonu zmniejszamy do 1280 px, żeby było szybciej i taniej
+  try{const bmp=await createImageBitmap(file);const k=Math.min(1,1280/Math.max(bmp.width,bmp.height));const c=document.createElement('canvas');c.width=Math.round(bmp.width*k);c.height=Math.round(bmp.height*k);c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);return await new Promise(r=>c.toBlob(r,'image/jpeg',.85))}catch(e){return file}
+}
+async function askAI(desc,photo){
+  const prompt=aiPrompt(desc,!!photo);
+  if(sampleApi){
+    const opts={};if(photo)opts.images=[photo];
+    return await sampleApi.json(prompt,opts);
+  }
+  if(!S.ai?.key)throw new Error('Brak klucza API. Wpisz go w ustawieniach AI poniżej.');
+  const content=[];
+  if(photo)content.push({type:'image',source:{type:'base64',media_type:photo.type||'image/jpeg',data:await toB64(photo)}});
+  content.push({type:'text',text:prompt});
+  const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':S.ai.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:S.ai.model||'claude-opus-5-5',max_tokens:2000,output_config:{effort:'low'},messages:[{role:'user',content}]})});
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok){const m=data?.error?.message||res.statusText;throw new Error(res.status===401?'Klucz API jest nieprawidłowy.':res.status===429?'Za dużo zapytań, spróbuj za chwilę.':'Błąd API: '+m)}
+  if(data.stop_reason==='refusal')throw new Error('AI odmówiło odpowiedzi na to zapytanie.');
+  return parseJson((data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join(''));
+}
+function aiPanel(){
+  const A=ui.ai;
+  if(!A.open)return `<button class="primary aibtn" data-act="aiOpen"><svg class="eqic" viewBox="0 0 24 24"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>Dodaj ćwiczenie z pomocą AI</button>`;
+  const mode=aiMode();
+  const r=A.result;
+  return `<div class="card aicard"><div class="row between"><h3>Dodaj z pomocą AI</h3><button class="ghost" data-act="aiClose" aria-label="Zamknij">✕</button></div>
+  <p class="muted" style="margin:0;font-size:.88rem">Opisz ćwiczenie własnymi słowami (napisz albo podyktuj) lub zrób zdjęcie maszyny. AI zaproponuje nazwę polską i angielską, partię i sprzęt.</p>
+  <textarea id="ai-desc" placeholder="Np. siedzę na maszynie, przyciągam uchwyt do brzucha, łokcie blisko ciała">${esc(A.desc)}</textarea>
+  <div class="row">${canVoice()?`<button id="ai-mic" class="mic${voice.on?' rec':''}" data-act="aiVoice" aria-pressed="${voice.on}"><svg class="eqic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg><span>${voice.on?'Słucham… stuknij, by zakończyć':'Podyktuj'}</span></button>`:''}<label class="btn" for="ai-photo" style="display:inline-flex;gap:6px;align-items:center"><svg class="eqic" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>${A.photo?'Zmień zdjęcie':'Zdjęcie maszyny'}</label>
+  <input id="ai-photo" type="file" accept="image/*" capture="environment" hidden>
+  ${A.photoUrl?`<img src="${A.photoUrl}" alt="Wybrane zdjęcie" class="aithumb"><button class="ghost" data-act="aiNoPhoto">Usuń zdjęcie</button>`:''}</div>
+  ${mode?`<div class="row"><button class="primary" data-act="aiAsk" ${A.busy?'disabled':''}>${A.busy?'Rozpoznaję…':'Rozpoznaj'}</button><span class="muted" style="font-size:.78rem">${mode==='claude'?'Przez Twoje konto Claude':'Przez Twój klucz API'}</span></div>`
+    :`<p class="muted" style="margin:0;font-size:.88rem">Tutaj AI działa z Twoim kluczem API. Dodaj go w ustawieniach AI w zakładce Plan.</p><div><button data-tab="plan">Ustawienia AI</button></div>`}
+  ${A.error?`<p class="aierr">${esc(A.error)}</p>`:''}
+  ${r?`<div class="aires stack">
+    <div class="row between"><span class="eyebrow">Propozycja AI</span><span class="chip ${r.confidence==='wysoka'?'good':r.confidence==='niska'?'warn':''}">pewność: ${esc(r.confidence||'?')}</span></div>
+    <label class="eyebrow" for="air-pl">Nazwa polska</label><input id="air-pl" value="${esc(r.pl)}">
+    <label class="eyebrow" for="air-en">Nazwa angielska</label><input id="air-en" value="${esc(r.en)}">
+    <div class="row"><select id="air-group" aria-label="Partia">${DB.map(g=>`<option value="${esc(g.en)}" ${g.en===r.group?'selected':''}>${esc(g.group)}</option>`).join('')}</select>
+    <select id="air-eq" aria-label="Sprzęt">${EQUIP.map(([k,l])=>`<option value="${k}" ${k===r.eq?'selected':''}>${l}</option>`).join('')}</select></div>
+    ${r.tip?`<div style="font-size:.88rem"><b>Technika:</b> ${esc(r.tip)}</div>`:''}
+    ${r.note?`<div class="muted" style="font-size:.82rem">${esc(r.note)}</div>`:''}
+    ${r.dup?`<div class="aierr" style="color:var(--warn)">To ćwiczenie już jest w bazie: ${esc(r.dup)}.</div>`:''}
+    <div class="row"><button class="primary" data-act="aiSave">Dodaj do bazy${ui.target?' i do planu':''}</button>${S.plan.length?`<span class="muted" style="font-size:.78rem">${ui.target?'Dzień: '+esc(S.plan.find(d=>d.id===ui.target)?.name||''):''}</span>`:''}</div>
+  </div>`:''}
+  </div>`;
+}
+function aiSettings(){
+  const has=!!S.ai?.key;
+  return `<section class="stack"><h2>Ustawienia AI</h2><div class="card">
+  <p class="muted" style="margin:0;font-size:.88rem">${sampleApi?'Teraz AI działa przez Twoje konto Claude, bez klucza. ':''}Klucz API jest potrzebny, gdy aplikacja działa poza claude.ai (np. zainstalowana na telefonie). Klucz założysz na console.anthropic.com. Zostaje tylko w tej przeglądarce.</p>
+  <label class="eyebrow" for="ai-key">Klucz API</label><input id="ai-key" type="password" autocomplete="off" placeholder="${has?'Klucz zapisany (wpisz nowy, aby zmienić)':'sk-ant-…'}">
+  <label class="eyebrow" for="ai-model">Model</label><select id="ai-model">${AI_MODELS.map(([v,l])=>`<option value="${v}" ${(S.ai?.model||'claude-opus-5-5')===v?'selected':''}>${l}</option>`).join('')}</select>
+  <div class="row"><button data-act="aiKeySave">Zapisz</button>${has?'<button class="ghost danger" data-act="aiKeyDel">Usuń klucz</button>':''}</div></div></section>`;
 }
 
 /* ---------- grafiki: kolory partii i mapa mięśni ---------- */
@@ -366,7 +517,7 @@ function viewTrening(){
   }
   const day=S.plan.find(d=>d.id===ui.dayId);
   return `<header class="top"><div><div class="eyebrow">W trakcie</div><h1>${esc(day?.name||'Trening')}</h1></div><input type="date" id="draft-date" value="${ui.draft.date}"></header>
-  ${ui.draft.entries.map((e,ei)=>`<div class="card"><div class="exhead">${exGroup(e.name)?bodyMap([exGroup(e.name)],52):'<span></span>'}<div><h3>${esc(e.name)}</h3>${enName(e.name)?`<div class="en">${esc(enName(e.name))}</div>`:''}</div></div>${(()=>{const le=lastEntry(e.name),b=bestOf(e.name);if(!le&&!b)return '<div class="muted" style="font-size:.8rem">Pierwszy raz. Wpisz ciężar i powtórzenia.</div>';
+  ${ui.draft.entries.map((e,ei)=>`<div class="card"><div class="exhead">${exGroup(e.name)?bodyMap([exGroup(e.name)],52):'<span></span>'}<div><h3><button class="exlink" data-act="exInfo" data-name="${esc(e.name)}">${esc(e.name)} <span class="infoi" aria-hidden="true">i</span></button></h3>${enName(e.name)?`<div class="en">${esc(enName(e.name))}</div>`:''}</div></div>${(()=>{const le=lastEntry(e.name),b=bestOf(e.name);if(!le&&!b)return '<div class="muted" style="font-size:.8rem">Pierwszy raz. Wpisz ciężar i powtórzenia.</div>';
       return `<div class="refs"><div><span class="eyebrow">Ostatnio</span><span class="num">${le?le.sets.map(x=>`${fmtKg(x.w)}×${x.r}`).join(' · '):'–'}</span></div><div><span class="eyebrow">Rekord</span><span class="num">${b?`${fmtKg(b.w)} kg × ${b.wr} · max ${b.r} powt.`:'–'}</span></div></div>`})()}
     <div class="sets"><span class="hd">Seria</span><span class="hd">kg</span><span class="hd">Powt.</span><span class="hd">✓</span>
     ${e.sets.map((s,si)=>`<span class="num muted" style="text-align:center">${si+1}</span>
@@ -385,9 +536,10 @@ function viewPlan(){
   <p class="muted" style="margin:0">Ćwiczenia możesz też wybierać z <button class="ghost" style="padding:0;color:var(--accent)" data-tab="baza">bazy ćwiczeń</button>.</p>
   ${S.plan.map(d=>`<div class="card">
     <div class="row between">${ui.editDay===d.id?`<input id="dn-${d.id}" value="${esc(d.name)}" style="flex:1"><button data-act="saveDay" data-id="${d.id}">OK</button>`:`<h3>${esc(d.name)}</h3><span class="row"><button class="ghost" data-act="editDay" data-id="${d.id}">Zmień nazwę</button><button class="ghost danger" data-act="rmDay" data-id="${d.id}">Usuń</button></span>`}</div>
-    <div>${d.exercises.map(e=>`<div class="ex"><div>${esc(e.name)}${enName(e.name)?`<div class="en">${esc(enName(e.name))}</div>`:''}</div><div class="row"><span class="num muted">${e.sets}×${e.reps}</span><button class="ghost" data-act="rmEx" data-id="${d.id}" data-ex="${e.id}" aria-label="Usuń ćwiczenie">✕</button></div></div>`).join('')||'<p class="muted">Dodaj pierwsze ćwiczenie.</p>'}</div>
+    <div>${d.exercises.map(e=>`<div class="ex"><div><button class="exlink" data-act="exInfo" data-name="${esc(e.name)}">${esc(e.name)}</button>${enName(e.name)?`<div class="en">${esc(enName(e.name))}</div>`:''}</div><div class="row"><span class="num muted">${e.sets}×${e.reps}</span><button class="ghost" data-act="rmEx" data-id="${d.id}" data-ex="${e.id}" aria-label="Usuń ćwiczenie">✕</button></div></div>`).join('')||'<p class="muted">Dodaj pierwsze ćwiczenie.</p>'}</div>
     <form class="row" data-form="addEx" data-id="${d.id}"><input id="en-${d.id}" list="ex-list" placeholder="Nowe ćwiczenie (zacznij pisać)" style="flex:1 1 160px" required><input id="es-${d.id}" class="num" inputmode="numeric" value="3" style="width:52px" aria-label="Serie"><span class="muted">×</span><input id="er-${d.id}" class="num" inputmode="numeric" value="10" style="width:52px" aria-label="Powtórzenia"><button>Dodaj</button></form>
   </div>`).join('')}
+  ${aiSettings()}
   <section class="stack"><h2>Kopia zapasowa</h2><div class="card"><p class="muted" style="margin:0">Dane są zapisane tylko w tej przeglądarce. Skopiuj je od czasu do czasu, żeby ich nie stracić.</p>
   <div class="row"><button data-act="copyBackup">Kopiuj dane</button></div>
   <textarea id="restore" placeholder="Wklej tu skopiowane dane, żeby je przywrócić"></textarea><div><button data-act="restore">Przywróć z wklejonych</button></div></div></section>`;
@@ -467,6 +619,7 @@ function render(){
   renderTabs();
   const app=document.getElementById('app');const key=tab+(ui.draft?'-d':'');
   app.classList.toggle('enter',key!==lastView);lastView=key;
+  document.getElementById('sheet').innerHTML=exSheet();
   app.innerHTML=({trening:viewTrening,plan:viewPlan,baza:viewBaza,postepy:viewPostepy,porady:viewPorady,notatki:viewNotatki}[tab])();
 }
 
@@ -480,6 +633,36 @@ document.addEventListener('click',e=>{
   else if(a==='clearAll'){const p=S.plan.map(d=>({...d}));S={example:false,plan:p,sessions:[],bodyweight:[],notes:[]};ui.confirmClear=false;save();toast('Wyczyszczono historię. Plan został.')}
   else if(a==='grp'){ui.grp=b.dataset.g}
   else if(a==='eq'){ui.eq=b.dataset.e}
+  else if(a==='exInfo'){ui.exInfo=b.dataset.name;document.getElementById('sheet').innerHTML=exSheet();document.querySelector('.sheet .primary')?.focus();return}
+  else if(a==='exClose'){ui.exInfo=null;document.getElementById('sheet').innerHTML='';return}
+  else if(a==='aiVoice'){voiceToggle();return}
+  else if(a==='aiOpen'){ui.ai.open=true}
+  else if(a==='aiClose'){if(voice.on)voiceToggle();ui.ai={...ui.ai,open:false,result:null,error:''}}
+  else if(a==='aiNoPhoto'){ui.ai.photo=null;ui.ai.photoUrl=''}
+  else if(a==='aiAsk'){if(voice.on)voiceToggle();
+    const A=ui.ai;if(!A.desc.trim()&&!A.photo){A.error='Opisz ćwiczenie albo dodaj zdjęcie.';render();return}
+    A.busy=true;A.error='';A.result=null;render();
+    askAI(A.desc.trim(),A.photo).then(r=>{
+      if(!r||!r.pl)throw new Error('AI nie rozpoznało ćwiczenia. Spróbuj dokładniej je opisać.');
+      if(!DB.some(g=>g.en===r.group))r.group='Full Body & Conditioning';
+      if(!EQUIP.some(e=>e[0]===r.eq))r.eq='inne';
+      const d=findEx(r.pl)||findEx(r.en);if(d)r.dup=d.pl;
+      A.result=r;
+    }).catch(err=>{A.error=err?.code==='not_granted'?'Nie zezwolono aplikacji na użycie Claude.':err?.code==='rate_limited'?'Za dużo zapytań, spróbuj za chwilę.':(err?.message||'Nie udało się połączyć z AI.')})
+    .finally(()=>{A.busy=false;if(tab==='baza')render()});return}
+  else if(a==='aiSave'){
+    const v=id=>document.getElementById(id).value.trim();
+    const R=ui.ai.result||{};const ex={pl:v('air-pl'),en:v('air-en'),groupEn:v('air-group'),eq:v('air-eq'),tip:R.tip||'',steps:Array.isArray(R.steps)?R.steps.slice(0,6).map(String):[],tips:Array.isArray(R.tips)?R.tips.slice(0,6).map(String):[]};
+    if(!ex.pl){toast('Podaj nazwę polską');return}
+    const known=findEx(ex.pl);
+    if(!known){S.customEx=S.customEx||[];S.customEx.push(ex);rebuildDB()}
+    const d=S.plan.find(x=>x.id===ui.target);
+    const name=known?known.pl:ex.pl;
+    if(d&&!d.exercises.some(e=>norm(e.name)===norm(name)))d.exercises.push({id:uid(),name,sets:3,reps:10});
+    save();ui.ai={open:false,desc:'',photo:null,photoUrl:'',busy:false,result:null,error:''};ui.grp=DB.find(g=>g.en===(known?known.groupEn:ex.groupEn))?.group||'';ui.eq='';ui.q='';
+    toast(known?'To ćwiczenie już było w bazie':'Dodano do bazy'+(d?' i do planu':''))}
+  else if(a==='aiKeySave'){const k=document.getElementById('ai-key').value.trim();S.ai={...(S.ai||{}),model:document.getElementById('ai-model').value};if(k)S.ai.key=k;save();toast('Zapisano ustawienia AI')}
+  else if(a==='aiKeyDel'){if(S.ai)delete S.ai.key;save();toast('Usunięto klucz')}
   else if(a==='addFromDb'){const d=S.plan.find(x=>x.id===ui.target);if(!d)return;d.exercises.push({id:uid(),name:b.dataset.name,sets:3,reps:10});save();document.getElementById('db-results').innerHTML=dbResults();toast('Dodano do: '+d.name);return}
   else if(a==='start'){startDraft(id)}
   else if(a==='cancelDraft'){ui.draft=null}
@@ -506,11 +689,12 @@ document.addEventListener('click',e=>{
 document.addEventListener('input',e=>{
   const el=e.target;
   if(el.dataset.set){const[ei,si,k]=el.dataset.set.split(',');ui.draft.entries[ei].sets[si][k]=k==='done'?el.checked:el.value}
+  else if(el.id==='ai-desc'){ui.ai.desc=el.value}
   else if(el.id==='db-q'){ui.q=el.value;document.getElementById('db-results').innerHTML=dbResults()}
   else if(el.id==='draft-note')ui.draft.note=el.value;
   else if(el.id==='draft-date')ui.draft.date=el.value;
 });
-document.addEventListener('change',e=>{if(e.target.id==='ex-pick'){ui.ex=e.target.value;render()}if(e.target.id==='db-target'){ui.target=e.target.value;document.getElementById('db-results').innerHTML=dbResults()}});
+document.addEventListener('change',e=>{if(e.target.id==='ai-photo'&&e.target.files[0]){const f=e.target.files[0];shrink(f).then(b=>{ui.ai.photo=b;if(ui.ai.photoUrl)URL.revokeObjectURL(ui.ai.photoUrl);ui.ai.photoUrl=URL.createObjectURL(b);render()})}if(e.target.id==='ex-pick'){ui.ex=e.target.value;render()}if(e.target.id==='db-target'){ui.target=e.target.value;document.getElementById('db-results').innerHTML=dbResults()}});
 document.addEventListener('submit',e=>{
   e.preventDefault();const f=e.target,k=f.dataset.form;
   if(k==='addEx'){const id=f.dataset.id,n=document.getElementById('en-'+id).value.trim();if(!n)return;
@@ -521,4 +705,7 @@ document.addEventListener('submit',e=>{
 });
 window.addEventListener('hashchange',()=>{const h=location.hash.slice(1);if(TABS.some(t=>t[0]===h)&&h!==tab){tab=h;render()}});
 render();
+</script>
+<script>
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(ui.exInfo){ui.exInfo=null;document.getElementById('sheet').innerHTML=''}document.querySelector('.celebrate')?.remove()}});
 </script>
