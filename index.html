@@ -40,8 +40,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0}
 textarea{width:100%;min-height:80px;resize:vertical}
 .banner{background:var(--soft);border-radius:10px;padding:10px 14px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-size:.9rem}
-nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);z-index:5}
-nav.tabs button{border:0;border-radius:0;background:transparent;padding:10px 2px 12px;font-size:.72rem;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;letter-spacing:.03em}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(6,1fr);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);z-index:5}
+nav.tabs button{border:0;border-radius:0;background:transparent;padding:10px 2px 12px;font-size:.68rem;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;letter-spacing:.03em}
 nav.tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8}
 nav.tabs button[aria-current="page"]{color:var(--accent)}
 .ex{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;padding-block:8px;border-top:1px solid var(--line)}
@@ -63,6 +63,14 @@ svg.chart text{fill:var(--muted);font-family:var(--f-num);font-size:10px}
 .tip h3{margin-bottom:4px}
 .note-meta{font-size:.78rem;color:var(--muted)}
 .check{width:22px;height:22px;accent-color:var(--good)}
+.en{font-size:.8rem;color:var(--muted)}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.chips button{white-space:nowrap;border-radius:999px;padding:5px 12px;font-size:.82rem}
+.chips button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.dbrow{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;padding-block:8px;border-top:1px solid var(--line)}
+.dbrow:first-of-type{border-top:0}
+.refs{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:.82rem}
+.refs>div{display:flex;flex-direction:column;gap:2px;min-width:0}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-weight:600;z-index:9}
 @media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}}
 </style>
@@ -71,6 +79,7 @@ svg.chart text{fill:var(--muted);font-family:var(--f-num);font-size:10px}
 <nav class="tabs" id="tabs"></nav>
 <div class="toast" id="toast" hidden></div>
 
+<script src="exercises.js"></script>
 <script>
 const KEY='silownia.v1';
 const uid=()=>Math.random().toString(36).slice(2,9);
@@ -115,12 +124,13 @@ load();
 const TABS=[
   ['trening','Trening','<path d="M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12"/>'],
   ['plan','Plan','<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/>'],
+  ['baza','Ćwiczenia','<path d="M4 6h16M4 12h16M4 18h10"/><circle cx="19" cy="18" r="2"/>'],
   ['postepy','Postępy','<path d="M4 19h16M6 16l4-5 3 3 5-7"/>'],
   ['porady','Porady','<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/>'],
   ['notatki','Obserwacje','<path d="M5 4h10l4 4v12H5z"/><path d="M9 12h6M9 16h4"/>']
 ];
 let tab=(location.hash.slice(1)||'trening');if(!TABS.some(t=>t[0]===tab))tab='trening';
-let ui={dayId:null,draft:null,ex:null,editDay:null,confirmClear:false};
+let ui={q:'',grp:'',target:null,dayId:null,draft:null,ex:null,editDay:null,confirmClear:false};
 
 function renderTabs(){
   document.getElementById('tabs').innerHTML=TABS.map(([id,l,ic])=>`<button data-tab="${id}" ${id===tab?'aria-current="page"':''}><svg viewBox="0 0 24 24">${ic}</svg>${l}</button>`).join('');
@@ -131,6 +141,30 @@ function banner(){
   if(!S.example)return'';
   return `<div class="banner"><span>Widzisz <b>przykładowe dane</b>, żeby było widać, jak działa aplikacja.</span>
   ${ui.confirmClear?`<span class="row"><button class="danger" data-act="clearAll">Tak, wyczyść</button><button class="ghost" data-act="cancelClear">Anuluj</button></span>`:`<button data-act="askClear">Zacznij od zera</button>`}</div>`;
+}
+
+/* ---------- baza ćwiczeń ---------- */
+const DB=(window.EXERCISE_DB||[]);
+const DB_FLAT=DB.flatMap(g=>g.items.map(i=>({...i,group:g.group,groupEn:g.en})));
+const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ł/g,'l');
+function findEx(name){const n=norm(name);return DB_FLAT.find(i=>norm(i.pl)===n||norm(i.en)===n)}
+function enName(name){const f=findEx(name);return f&&norm(f.en)!==norm(name)?f.en:''}
+function dbResults(){
+  const q=norm(ui.q);
+  const groups=DB.filter(g=>!ui.grp||g.group===ui.grp).map(g=>({...g,items:g.items.filter(i=>!q||norm(i.pl).includes(q)||norm(i.en).includes(q)||norm(i.eq).includes(q))})).filter(g=>g.items.length);
+  if(!groups.length)return '<p class="muted">Nic nie znaleziono. Własne ćwiczenie możesz dodać w zakładce Plan.</p>';
+  const inPlan=new Set(S.plan.find(d=>d.id===ui.target)?.exercises.map(e=>norm(e.name))||[]);
+  return groups.map(g=>`<section class="stack"><h2>${esc(g.group)} <span class="en" style="font-family:var(--f-body);text-transform:none">${esc(g.en)}</span></h2><div class="card">${g.items.map(i=>`<div class="dbrow"><div><div>${esc(i.pl)}</div><div class="en">${esc(i.en)} · ${esc(i.eq)}</div></div>
+    ${!ui.target?'':inPlan.has(norm(i.pl))?'<span class="chip good">W planie</span>':`<button data-act="addFromDb" data-name="${esc(i.pl)}">+ Dodaj</button>`}</div>`).join('')}</div></section>`).join('');
+}
+function viewBaza(){
+  if(ui.target&&!S.plan.some(d=>d.id===ui.target))ui.target=null;
+  if(!ui.target&&S.plan[0])ui.target=S.plan[0].id;
+  return `<header class="top"><div><div class="eyebrow">${DB_FLAT.length} ćwiczeń · ${DB.length} partii</div><h1>Baza ćwiczeń</h1></div></header>
+  <div class="card"><input id="db-q" type="search" placeholder="Szukaj po polsku lub angielsku, np. przysiad, row, hantle" value="${esc(ui.q)}" aria-label="Szukaj ćwiczenia">
+  <div class="chips"><button data-act="grp" data-g="" aria-pressed="${!ui.grp}">Wszystkie</button>${DB.map(g=>`<button data-act="grp" data-g="${esc(g.group)}" aria-pressed="${ui.grp===g.group}">${esc(g.group)}</button>`).join('')}</div>
+  ${S.plan.length?`<div class="row"><label class="eyebrow" for="db-target">Dodawaj do</label><select id="db-target">${S.plan.map(d=>`<option value="${d.id}" ${d.id===ui.target?'selected':''}>${esc(d.name)}</option>`).join('')}</select></div>`:'<p class="muted" style="margin:0">Dodaj dzień w Planie, żeby wrzucać do niego ćwiczenia z bazy.</p>'}</div>
+  <div id="db-results" class="stack">${dbResults()}</div>`;
 }
 
 /* ---------- wnioski (automatyczne obserwacje) ---------- */
@@ -159,11 +193,14 @@ function insights(){
 }
 
 /* ---------- TRENING ---------- */
+function lastEntry(name){for(let i=S.sessions.length-1;i>=0;i--){const e=S.sessions[i].entries.find(x=>x.name===name);if(e&&e.sets.length)return e}return null}
+function bestOf(name){let w=0,wr=0,r=0;S.sessions.forEach(s=>s.entries.forEach(e=>{if(e.name!==name)return;e.sets.forEach(x=>{const xw=+x.w||0,xr=+x.r||0;if(xw>w||(xw===w&&xr>wr)){w=xw;wr=xr}if(xr>r)r=xr})}));return w||r?{w,wr,r}:null}
+const fmtKg=v=>(+v||0).toLocaleString('pl-PL');
 function lastWeight(name){for(let i=S.sessions.length-1;i>=0;i--){const e=S.sessions[i].entries.find(x=>x.name===name);if(e)return topSet(e)}return''}
 function startDraft(dayId){
   const day=S.plan.find(d=>d.id===dayId);if(!day)return;
   ui.dayId=dayId;
-  ui.draft={date:today(),note:'',entries:day.exercises.map(e=>({name:e.name,sets:Array.from({length:e.sets},()=>({w:lastWeight(e.name),r:e.reps,done:false}))}))};
+  ui.draft={date:today(),note:'',entries:day.exercises.map(e=>({name:e.name,sets:Array.from({length:e.sets},(_,i)=>{const le=lastEntry(e.name);const ls=le?(le.sets[i]||le.sets[le.sets.length-1]):null;return{w:ls?ls.w:'',r:ls&&ls.r?ls.r:e.reps,done:false}})}))};
 }
 function viewTrening(){
   const last=S.sessions.slice(-1)[0];
@@ -181,7 +218,8 @@ function viewTrening(){
   }
   const day=S.plan.find(d=>d.id===ui.dayId);
   return `<header class="top"><div><div class="eyebrow">W trakcie</div><h1>${esc(day?.name||'Trening')}</h1></div><input type="date" id="draft-date" value="${ui.draft.date}"></header>
-  ${ui.draft.entries.map((e,ei)=>`<div class="card"><div class="row between"><h3>${esc(e.name)}</h3><span class="muted" style="font-size:.8rem">ostatnio: <span class="num">${lastWeight(e.name)||'–'} kg</span></span></div>
+  ${ui.draft.entries.map((e,ei)=>`<div class="card"><div class="row between"><div><h3>${esc(e.name)}</h3>${enName(e.name)?`<div class="en">${esc(enName(e.name))}</div>`:''}</div></div>${(()=>{const le=lastEntry(e.name),b=bestOf(e.name);if(!le&&!b)return '<div class="muted" style="font-size:.8rem">Pierwszy raz. Wpisz ciężar i powtórzenia.</div>';
+      return `<div class="refs"><div><span class="eyebrow">Ostatnio</span><span class="num">${le?le.sets.map(x=>`${fmtKg(x.w)}×${x.r}`).join(' · '):'–'}</span></div><div><span class="eyebrow">Rekord</span><span class="num">${b?`${fmtKg(b.w)} kg × ${b.wr} · max ${b.r} powt.`:'–'}</span></div></div>`})()}
     <div class="sets"><span class="hd">Seria</span><span class="hd">kg</span><span class="hd">Powt.</span><span class="hd">✓</span>
     ${e.sets.map((s,si)=>`<span class="num muted" style="text-align:center">${si+1}</span>
       <input id="w-${ei}-${si}" inputmode="decimal" class="num" value="${s.w}" data-set="${ei},${si},w" aria-label="Ciężar seria ${si+1}">
@@ -195,10 +233,12 @@ function viewTrening(){
 /* ---------- PLAN ---------- */
 function viewPlan(){
   return `${banner()}<header class="top"><div><div class="eyebrow">Twój tydzień</div><h1>Plan treningowy</h1></div><button data-act="addDay">+ Dzień</button></header>
+  <datalist id="ex-list">${DB_FLAT.map(i=>`<option value="${esc(i.pl)}">${esc(i.en)} · ${esc(i.group)}</option>`).join('')}</datalist>
+  <p class="muted" style="margin:0">Ćwiczenia możesz też wybierać z <button class="ghost" style="padding:0;color:var(--accent)" data-tab="baza">bazy ćwiczeń</button>.</p>
   ${S.plan.map(d=>`<div class="card">
     <div class="row between">${ui.editDay===d.id?`<input id="dn-${d.id}" value="${esc(d.name)}" style="flex:1"><button data-act="saveDay" data-id="${d.id}">OK</button>`:`<h3>${esc(d.name)}</h3><span class="row"><button class="ghost" data-act="editDay" data-id="${d.id}">Zmień nazwę</button><button class="ghost danger" data-act="rmDay" data-id="${d.id}">Usuń</button></span>`}</div>
-    <div>${d.exercises.map(e=>`<div class="ex"><div>${esc(e.name)}</div><div class="row"><span class="num muted">${e.sets}×${e.reps}</span><button class="ghost" data-act="rmEx" data-id="${d.id}" data-ex="${e.id}" aria-label="Usuń ćwiczenie">✕</button></div></div>`).join('')||'<p class="muted">Dodaj pierwsze ćwiczenie.</p>'}</div>
-    <form class="row" data-form="addEx" data-id="${d.id}"><input id="en-${d.id}" placeholder="Nowe ćwiczenie" style="flex:1 1 160px" required><input id="es-${d.id}" class="num" inputmode="numeric" value="3" style="width:52px" aria-label="Serie"><span class="muted">×</span><input id="er-${d.id}" class="num" inputmode="numeric" value="10" style="width:52px" aria-label="Powtórzenia"><button>Dodaj</button></form>
+    <div>${d.exercises.map(e=>`<div class="ex"><div>${esc(e.name)}${enName(e.name)?`<div class="en">${esc(enName(e.name))}</div>`:''}</div><div class="row"><span class="num muted">${e.sets}×${e.reps}</span><button class="ghost" data-act="rmEx" data-id="${d.id}" data-ex="${e.id}" aria-label="Usuń ćwiczenie">✕</button></div></div>`).join('')||'<p class="muted">Dodaj pierwsze ćwiczenie.</p>'}</div>
+    <form class="row" data-form="addEx" data-id="${d.id}"><input id="en-${d.id}" list="ex-list" placeholder="Nowe ćwiczenie (zacznij pisać)" style="flex:1 1 160px" required><input id="es-${d.id}" class="num" inputmode="numeric" value="3" style="width:52px" aria-label="Serie"><span class="muted">×</span><input id="er-${d.id}" class="num" inputmode="numeric" value="10" style="width:52px" aria-label="Powtórzenia"><button>Dodaj</button></form>
   </div>`).join('')}
   <section class="stack"><h2>Kopia zapasowa</h2><div class="card"><p class="muted" style="margin:0">Dane są zapisane tylko w tej przeglądarce. Skopiuj je od czasu do czasu, żeby ich nie stracić.</p>
   <div class="row"><button data-act="copyBackup">Kopiuj dane</button></div>
@@ -275,7 +315,7 @@ function viewNotatki(){
 
 function render(){
   renderTabs();
-  document.getElementById('app').innerHTML=({trening:viewTrening,plan:viewPlan,postepy:viewPostepy,porady:viewPorady,notatki:viewNotatki}[tab])();
+  document.getElementById('app').innerHTML=({trening:viewTrening,plan:viewPlan,baza:viewBaza,postepy:viewPostepy,porady:viewPorady,notatki:viewNotatki}[tab])();
 }
 
 function leaveExample(){if(S.example){S.example=false}}
@@ -286,6 +326,8 @@ document.addEventListener('click',e=>{
   if(a==='askClear'){ui.confirmClear=true}
   else if(a==='cancelClear'){ui.confirmClear=false}
   else if(a==='clearAll'){const p=S.plan.map(d=>({...d}));S={example:false,plan:p,sessions:[],bodyweight:[],notes:[]};ui.confirmClear=false;save();toast('Wyczyszczono historię. Plan został.')}
+  else if(a==='grp'){ui.grp=b.dataset.g}
+  else if(a==='addFromDb'){const d=S.plan.find(x=>x.id===ui.target);if(!d)return;d.exercises.push({id:uid(),name:b.dataset.name,sets:3,reps:10});save();document.getElementById('db-results').innerHTML=dbResults();toast('Dodano do: '+d.name);return}
   else if(a==='start'){startDraft(id)}
   else if(a==='cancelDraft'){ui.draft=null}
   else if(a==='addSet'){const en=ui.draft.entries[b.dataset.i];const l=en.sets[en.sets.length-1];en.sets.push({w:l?.w??'',r:l?.r??'',done:false})}
@@ -309,10 +351,11 @@ document.addEventListener('click',e=>{
 document.addEventListener('input',e=>{
   const el=e.target;
   if(el.dataset.set){const[ei,si,k]=el.dataset.set.split(',');ui.draft.entries[ei].sets[si][k]=k==='done'?el.checked:el.value}
+  else if(el.id==='db-q'){ui.q=el.value;document.getElementById('db-results').innerHTML=dbResults()}
   else if(el.id==='draft-note')ui.draft.note=el.value;
   else if(el.id==='draft-date')ui.draft.date=el.value;
 });
-document.addEventListener('change',e=>{if(e.target.id==='ex-pick'){ui.ex=e.target.value;render()}});
+document.addEventListener('change',e=>{if(e.target.id==='ex-pick'){ui.ex=e.target.value;render()}if(e.target.id==='db-target'){ui.target=e.target.value;document.getElementById('db-results').innerHTML=dbResults()}});
 document.addEventListener('submit',e=>{
   e.preventDefault();const f=e.target,k=f.dataset.form;
   if(k==='addEx'){const id=f.dataset.id,n=document.getElementById('en-'+id).value.trim();if(!n)return;
