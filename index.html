@@ -1,3 +1,18 @@
+<!doctype html>
+<!-- pwa:start (ten blok usuwa tools/artifact.py przy publikacji podglądu na claude.ai) -->
+<html lang="pl"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#16213D">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Siłownia">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
+<!-- pwa:end -->
 <title>Dziennik Siłowni</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -158,6 +173,7 @@ button[disabled]{opacity:.6;cursor:progress}
 @media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}}
 </style>
 
+<!-- pwa:start --></head><body><!-- pwa:end -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="mshade" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".38"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".18"/></linearGradient></defs></svg>
 <div class="wrap" id="app"></div>
 <div id="sheet"></div>
@@ -709,3 +725,10 @@ render();
 <script>
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(ui.exInfo){ui.exInfo=null;document.getElementById('sheet').innerHTML=''}document.querySelector('.celebrate')?.remove()}});
 </script>
+<script>
+// instalacja jako aplikacja: service worker tylko na zwykłej stronie (np. GitHub Pages), nie w podglądzie claude.ai
+if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')&&document.querySelector('link[rel=manifest]')){
+  window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').catch(()=>{})});
+}
+</script>
+<!-- pwa:start --></body></html><!-- pwa:end -->
