@@ -129,6 +129,14 @@ svg.chart text{fill:var(--muted);font-family:var(--f-num);font-size:10px}
 .eqhead .eqic{color:var(--accent)}
 .chips button.eqchip{display:inline-flex;align-items:center;gap:5px}
 .chips button .eqic{width:15px;height:15px}
+.aibtn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px}
+.aibtn .eqic{width:20px;height:20px}
+.aicard{border-color:var(--accent)}
+.aithumb{width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.aires{background:var(--bg);border-radius:10px;padding:12px}
+.aires input,.aires select{background:var(--surface)}
+.aierr{margin:0;color:var(--warn);font-size:.88rem}
+button[disabled]{opacity:.6;cursor:progress}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-weight:600;z-index:9}
 @media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}}
 </style>
@@ -189,7 +197,7 @@ const TABS=[
   ['notatki','Obserwacje','<path d="M5 4h10l4 4v12H5z"/><path d="M9 12h6M9 16h4"/>']
 ];
 let tab=(location.hash.slice(1)||'trening');if(!TABS.some(t=>t[0]===tab))tab='trening';
-let ui={q:'',grp:'',eq:'',target:null,dayId:null,draft:null,ex:null,editDay:null,confirmClear:false};
+let ui={ai:{open:false,desc:'',photo:null,photoUrl:'',busy:false,result:null,error:''},q:'',grp:'',eq:'',target:null,dayId:null,draft:null,ex:null,editDay:null,confirmClear:false};
 
 function renderTabs(){
   document.getElementById('tabs').innerHTML=TABS.map(([id,l,ic])=>`<button data-tab="${id}" ${id===tab?'aria-current="page"':''}><svg viewBox="0 0 24 24">${ic}</svg>${l}</button>`).join('');
@@ -203,8 +211,13 @@ function banner(){
 }
 
 /* ---------- baza ćwiczeń ---------- */
-const DB=(window.EXERCISE_DB||[]);
-const DB_FLAT=DB.flatMap(g=>g.items.map(i=>({...i,group:g.group,groupEn:g.en})));
+let DB=[],DB_FLAT=[];
+// baza z pliku + ćwiczenia dodane przez Ciebie (S.customEx), oznaczone custom:true
+function rebuildDB(){
+  DB=(window.EXERCISE_DB||[]).map(g=>({...g,items:[...g.items,...(S.customEx||[]).filter(c=>c.groupEn===g.en).map(c=>({pl:c.pl,en:c.en,eq:c.eq,tip:c.tip,custom:true}))]}));
+  DB_FLAT=DB.flatMap(g=>g.items.map(i=>({...i,group:g.group,groupEn:g.en})));
+}
+rebuildDB();
 const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ł/g,'l');
 function findEx(name){const n=norm(name);return DB_FLAT.find(i=>norm(i.pl)===n||norm(i.en)===n)}
 function enName(name){const f=findEx(name);return f&&norm(f.en)!==norm(name)?f.en:''}
@@ -215,7 +228,7 @@ function dbResults(){
   const groups=DB.filter(g=>!ui.grp||g.group===ui.grp).map(g=>({...g,items:g.items.filter(i=>(!ui.eq||i.eq===ui.eq)&&(!q||norm(i.pl).includes(q)||norm(i.en).includes(q)||norm(i.eq).includes(q)))})).filter(g=>g.items.length);
   if(!groups.length)return '<p class="muted">Nic nie znaleziono. Własne ćwiczenie możesz dodać w zakładce Plan.</p>';
   const inPlan=new Set(S.plan.find(d=>d.id===ui.target)?.exercises.map(e=>norm(e.name))||[]);
-  return groups.map(g=>`<section class="stack"><div class="ghead">${bodyMap([g.en],60)}<h2>${esc(g.group)} <span class="en" style="font-family:var(--f-body);text-transform:none">${esc(g.en)}</span></h2><span class="gchip" style="--c:${GROUP_COLOR[g.en]}"><i></i>${g.items.length}</span></div><div class="card">${EQUIP.filter(([k])=>g.items.some(i=>i.eq===k)).map(([k,label])=>`<div class="eqhead">${eqIcon(k)}<span>${label}</span><span class="muted num">${g.items.filter(i=>i.eq===k).length}</span></div>${g.items.filter(i=>i.eq===k).map(i=>`<div class="dbrow"><div><div>${esc(i.pl)}</div><div class="en">${esc(i.en)}</div></div>
+  return groups.map(g=>`<section class="stack"><div class="ghead">${bodyMap([g.en],60)}<h2>${esc(g.group)} <span class="en" style="font-family:var(--f-body);text-transform:none">${esc(g.en)}</span></h2><span class="gchip" style="--c:${GROUP_COLOR[g.en]}"><i></i>${g.items.length}</span></div><div class="card">${EQUIP.filter(([k])=>g.items.some(i=>i.eq===k)).map(([k,label])=>`<div class="eqhead">${eqIcon(k)}<span>${label}</span><span class="muted num">${g.items.filter(i=>i.eq===k).length}</span></div>${g.items.filter(i=>i.eq===k).map(i=>`<div class="dbrow"><div><div>${esc(i.pl)}</div><div class="en">${esc(i.en)}${i.custom?' · <span class="chip" style="font-size:.66rem">dodane przez AI</span>':''}</div>${i.tip?`<div class="muted" style="font-size:.8rem">${esc(i.tip)}</div>`:''}</div>
     ${!ui.target?'':inPlan.has(norm(i.pl))?'<span class="chip good">W planie</span>':`<button data-act="addFromDb" data-name="${esc(i.pl)}">+ Dodaj</button>`}</div>`).join('')}`).join('')}</div></section>`).join('');
 }
 function viewBaza(){
@@ -226,7 +239,83 @@ function viewBaza(){
   <div class="chips"><button data-act="grp" data-g="" aria-pressed="${!ui.grp}">Wszystkie</button>${DB.map(g=>`<button data-act="grp" data-g="${esc(g.group)}" aria-pressed="${ui.grp===g.group}">${esc(g.group)}</button>`).join('')}</div>
   <div class="chips"><button data-act="eq" data-e="" aria-pressed="${!ui.eq}">Każdy sprzęt</button>${EQUIP.map(([k,l])=>`<button data-act="eq" data-e="${k}" aria-pressed="${ui.eq===k}" class="eqchip">${eqIcon(k)}${l}</button>`).join('')}</div>
   ${S.plan.length?`<div class="row"><label class="eyebrow" for="db-target">Dodawaj do</label><select id="db-target">${S.plan.map(d=>`<option value="${d.id}" ${d.id===ui.target?'selected':''}>${esc(d.name)}</option>`).join('')}</select></div>`:'<p class="muted" style="margin:0">Dodaj dzień w Planie, żeby wrzucać do niego ćwiczenia z bazy.</p>'}</div>
+  ${aiPanel()}
   <div id="db-results" class="stack">${dbResults()}</div>`;
+}
+
+/* ---------- AI: rozpoznawanie ćwiczeń z opisu lub zdjęcia ---------- */
+// Dwie drogi: wbudowany Claude (gdy aplikacja jest otwarta z claude.ai) albo własny klucz API (wszędzie indziej).
+let sampleApi=null;
+(async()=>{try{sampleApi=await window.claude?.use?.('sample')}catch(e){}if(tab==='baza'&&ui.ai.open)render()})();
+const aiMode=()=>sampleApi?'claude':S.ai?.key?'key':null;
+const AI_MODELS=[['claude-opus-5-5','Claude Opus 5.5 (najlepszy, ok. 2–5 gr za zapytanie)'],['claude-haiku-5-5','Claude Haiku 5.5 (najtańszy)']];
+function aiPrompt(desc,hasPhoto){
+  const groups=DB.map(g=>`${g.en} = ${g.group}`).join('; ');
+  return `Jesteś trenerem personalnym i pomagasz prowadzić dziennik siłowni po polsku.
+${hasPhoto?'Na zdjęciu jest sprzęt lub ćwiczenie z siłowni. Rozpoznaj, co to jest i jakie ćwiczenie się na tym wykonuje.':''}
+${desc?`Opis od użytkownika: "${desc.replace(/"/g,"'")}"`:''}
+Podaj poprawną, powszechnie używaną nazwę ćwiczenia po polsku i po angielsku.
+Dozwolone partie (pole group, podaj wartość angielską): ${groups}.
+Dozwolony sprzęt (pole eq): sztanga, hantle, kettlebell, wyciąg, maszyna, masa ciała, inne.
+Odpowiedz WYŁĄCZNIE obiektem JSON, bez komentarza, w formacie:
+{"pl":"nazwa po polsku","en":"English name","group":"jedna z partii po angielsku","eq":"sprzęt","tip":"jedno zdanie wskazówki technicznej po polsku","confidence":"wysoka|średnia|niska","note":"krótka uwaga po polsku, jeśli coś jest niepewne, inaczej pusty"}`;
+}
+function parseJson(t){const m=String(t).match(/\{[\s\S]*\}/);if(!m)throw new Error('AI nie zwróciło danych w oczekiwanym formacie.');return JSON.parse(m[0])}
+const toB64=blob=>new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(String(fr.result).split(',')[1]);fr.onerror=rej;fr.readAsDataURL(blob)});
+async function shrink(file){ // zdjęcie z telefonu zmniejszamy do 1280 px, żeby było szybciej i taniej
+  try{const bmp=await createImageBitmap(file);const k=Math.min(1,1280/Math.max(bmp.width,bmp.height));const c=document.createElement('canvas');c.width=Math.round(bmp.width*k);c.height=Math.round(bmp.height*k);c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);return await new Promise(r=>c.toBlob(r,'image/jpeg',.85))}catch(e){return file}
+}
+async function askAI(desc,photo){
+  const prompt=aiPrompt(desc,!!photo);
+  if(sampleApi){
+    const opts={};if(photo)opts.images=[photo];
+    return await sampleApi.json(prompt,opts);
+  }
+  if(!S.ai?.key)throw new Error('Brak klucza API. Wpisz go w ustawieniach AI poniżej.');
+  const content=[];
+  if(photo)content.push({type:'image',source:{type:'base64',media_type:photo.type||'image/jpeg',data:await toB64(photo)}});
+  content.push({type:'text',text:prompt});
+  const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':S.ai.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:S.ai.model||'claude-opus-5-5',max_tokens:2000,output_config:{effort:'low'},messages:[{role:'user',content}]})});
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok){const m=data?.error?.message||res.statusText;throw new Error(res.status===401?'Klucz API jest nieprawidłowy.':res.status===429?'Za dużo zapytań, spróbuj za chwilę.':'Błąd API: '+m)}
+  if(data.stop_reason==='refusal')throw new Error('AI odmówiło odpowiedzi na to zapytanie.');
+  return parseJson((data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join(''));
+}
+function aiPanel(){
+  const A=ui.ai;
+  if(!A.open)return `<button class="primary aibtn" data-act="aiOpen"><svg class="eqic" viewBox="0 0 24 24"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>Dodaj ćwiczenie z pomocą AI</button>`;
+  const mode=aiMode();
+  const r=A.result;
+  return `<div class="card aicard"><div class="row between"><h3>Dodaj z pomocą AI</h3><button class="ghost" data-act="aiClose" aria-label="Zamknij">✕</button></div>
+  <p class="muted" style="margin:0;font-size:.88rem">Opisz ćwiczenie własnymi słowami albo zrób zdjęcie maszyny. AI zaproponuje nazwę polską i angielską, partię i sprzęt.</p>
+  <textarea id="ai-desc" placeholder="Np. siedzę na maszynie, przyciągam uchwyt do brzucha, łokcie blisko ciała">${esc(A.desc)}</textarea>
+  <div class="row"><label class="btn" for="ai-photo" style="display:inline-flex;gap:6px;align-items:center"><svg class="eqic" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>${A.photo?'Zmień zdjęcie':'Zdjęcie maszyny'}</label>
+  <input id="ai-photo" type="file" accept="image/*" capture="environment" hidden>
+  ${A.photoUrl?`<img src="${A.photoUrl}" alt="Wybrane zdjęcie" class="aithumb"><button class="ghost" data-act="aiNoPhoto">Usuń zdjęcie</button>`:''}</div>
+  ${mode?`<div class="row"><button class="primary" data-act="aiAsk" ${A.busy?'disabled':''}>${A.busy?'Rozpoznaję…':'Rozpoznaj'}</button><span class="muted" style="font-size:.78rem">${mode==='claude'?'Przez Twoje konto Claude':'Przez Twój klucz API'}</span></div>`
+    :`<p class="muted" style="margin:0;font-size:.88rem">Tutaj AI działa z Twoim kluczem API. Dodaj go w ustawieniach AI w zakładce Plan.</p><div><button data-tab="plan">Ustawienia AI</button></div>`}
+  ${A.error?`<p class="aierr">${esc(A.error)}</p>`:''}
+  ${r?`<div class="aires stack">
+    <div class="row between"><span class="eyebrow">Propozycja AI</span><span class="chip ${r.confidence==='wysoka'?'good':r.confidence==='niska'?'warn':''}">pewność: ${esc(r.confidence||'?')}</span></div>
+    <label class="eyebrow" for="air-pl">Nazwa polska</label><input id="air-pl" value="${esc(r.pl)}">
+    <label class="eyebrow" for="air-en">Nazwa angielska</label><input id="air-en" value="${esc(r.en)}">
+    <div class="row"><select id="air-group" aria-label="Partia">${DB.map(g=>`<option value="${esc(g.en)}" ${g.en===r.group?'selected':''}>${esc(g.group)}</option>`).join('')}</select>
+    <select id="air-eq" aria-label="Sprzęt">${EQUIP.map(([k,l])=>`<option value="${k}" ${k===r.eq?'selected':''}>${l}</option>`).join('')}</select></div>
+    ${r.tip?`<div style="font-size:.88rem"><b>Technika:</b> ${esc(r.tip)}</div>`:''}
+    ${r.note?`<div class="muted" style="font-size:.82rem">${esc(r.note)}</div>`:''}
+    ${r.dup?`<div class="aierr" style="color:var(--warn)">To ćwiczenie już jest w bazie: ${esc(r.dup)}.</div>`:''}
+    <div class="row"><button class="primary" data-act="aiSave">Dodaj do bazy${ui.target?' i do planu':''}</button>${S.plan.length?`<span class="muted" style="font-size:.78rem">${ui.target?'Dzień: '+esc(S.plan.find(d=>d.id===ui.target)?.name||''):''}</span>`:''}</div>
+  </div>`:''}
+  </div>`;
+}
+function aiSettings(){
+  const has=!!S.ai?.key;
+  return `<section class="stack"><h2>Ustawienia AI</h2><div class="card">
+  <p class="muted" style="margin:0;font-size:.88rem">${sampleApi?'Teraz AI działa przez Twoje konto Claude, bez klucza. ':''}Klucz API jest potrzebny, gdy aplikacja działa poza claude.ai (np. zainstalowana na telefonie). Klucz założysz na console.anthropic.com. Zostaje tylko w tej przeglądarce.</p>
+  <label class="eyebrow" for="ai-key">Klucz API</label><input id="ai-key" type="password" autocomplete="off" placeholder="${has?'Klucz zapisany (wpisz nowy, aby zmienić)':'sk-ant-…'}">
+  <label class="eyebrow" for="ai-model">Model</label><select id="ai-model">${AI_MODELS.map(([v,l])=>`<option value="${v}" ${(S.ai?.model||'claude-opus-5-5')===v?'selected':''}>${l}</option>`).join('')}</select>
+  <div class="row"><button data-act="aiKeySave">Zapisz</button>${has?'<button class="ghost danger" data-act="aiKeyDel">Usuń klucz</button>':''}</div></div></section>`;
 }
 
 /* ---------- grafiki: kolory partii i mapa mięśni ---------- */
@@ -388,6 +477,7 @@ function viewPlan(){
     <div>${d.exercises.map(e=>`<div class="ex"><div>${esc(e.name)}${enName(e.name)?`<div class="en">${esc(enName(e.name))}</div>`:''}</div><div class="row"><span class="num muted">${e.sets}×${e.reps}</span><button class="ghost" data-act="rmEx" data-id="${d.id}" data-ex="${e.id}" aria-label="Usuń ćwiczenie">✕</button></div></div>`).join('')||'<p class="muted">Dodaj pierwsze ćwiczenie.</p>'}</div>
     <form class="row" data-form="addEx" data-id="${d.id}"><input id="en-${d.id}" list="ex-list" placeholder="Nowe ćwiczenie (zacznij pisać)" style="flex:1 1 160px" required><input id="es-${d.id}" class="num" inputmode="numeric" value="3" style="width:52px" aria-label="Serie"><span class="muted">×</span><input id="er-${d.id}" class="num" inputmode="numeric" value="10" style="width:52px" aria-label="Powtórzenia"><button>Dodaj</button></form>
   </div>`).join('')}
+  ${aiSettings()}
   <section class="stack"><h2>Kopia zapasowa</h2><div class="card"><p class="muted" style="margin:0">Dane są zapisane tylko w tej przeglądarce. Skopiuj je od czasu do czasu, żeby ich nie stracić.</p>
   <div class="row"><button data-act="copyBackup">Kopiuj dane</button></div>
   <textarea id="restore" placeholder="Wklej tu skopiowane dane, żeby je przywrócić"></textarea><div><button data-act="restore">Przywróć z wklejonych</button></div></div></section>`;
@@ -480,6 +570,33 @@ document.addEventListener('click',e=>{
   else if(a==='clearAll'){const p=S.plan.map(d=>({...d}));S={example:false,plan:p,sessions:[],bodyweight:[],notes:[]};ui.confirmClear=false;save();toast('Wyczyszczono historię. Plan został.')}
   else if(a==='grp'){ui.grp=b.dataset.g}
   else if(a==='eq'){ui.eq=b.dataset.e}
+  else if(a==='aiOpen'){ui.ai.open=true}
+  else if(a==='aiClose'){ui.ai={...ui.ai,open:false,result:null,error:''}}
+  else if(a==='aiNoPhoto'){ui.ai.photo=null;ui.ai.photoUrl=''}
+  else if(a==='aiAsk'){
+    const A=ui.ai;if(!A.desc.trim()&&!A.photo){A.error='Opisz ćwiczenie albo dodaj zdjęcie.';render();return}
+    A.busy=true;A.error='';A.result=null;render();
+    askAI(A.desc.trim(),A.photo).then(r=>{
+      if(!r||!r.pl)throw new Error('AI nie rozpoznało ćwiczenia. Spróbuj dokładniej je opisać.');
+      if(!DB.some(g=>g.en===r.group))r.group='Full Body & Conditioning';
+      if(!EQUIP.some(e=>e[0]===r.eq))r.eq='inne';
+      const d=findEx(r.pl)||findEx(r.en);if(d)r.dup=d.pl;
+      A.result=r;
+    }).catch(err=>{A.error=err?.code==='not_granted'?'Nie zezwolono aplikacji na użycie Claude.':err?.code==='rate_limited'?'Za dużo zapytań, spróbuj za chwilę.':(err?.message||'Nie udało się połączyć z AI.')})
+    .finally(()=>{A.busy=false;if(tab==='baza')render()});return}
+  else if(a==='aiSave'){
+    const v=id=>document.getElementById(id).value.trim();
+    const ex={pl:v('air-pl'),en:v('air-en'),groupEn:v('air-group'),eq:v('air-eq'),tip:ui.ai.result?.tip||''};
+    if(!ex.pl){toast('Podaj nazwę polską');return}
+    const known=findEx(ex.pl);
+    if(!known){S.customEx=S.customEx||[];S.customEx.push(ex);rebuildDB()}
+    const d=S.plan.find(x=>x.id===ui.target);
+    const name=known?known.pl:ex.pl;
+    if(d&&!d.exercises.some(e=>norm(e.name)===norm(name)))d.exercises.push({id:uid(),name,sets:3,reps:10});
+    save();ui.ai={open:false,desc:'',photo:null,photoUrl:'',busy:false,result:null,error:''};ui.grp=DB.find(g=>g.en===(known?known.groupEn:ex.groupEn))?.group||'';ui.eq='';ui.q='';
+    toast(known?'To ćwiczenie już było w bazie':'Dodano do bazy'+(d?' i do planu':''))}
+  else if(a==='aiKeySave'){const k=document.getElementById('ai-key').value.trim();S.ai={...(S.ai||{}),model:document.getElementById('ai-model').value};if(k)S.ai.key=k;save();toast('Zapisano ustawienia AI')}
+  else if(a==='aiKeyDel'){if(S.ai)delete S.ai.key;save();toast('Usunięto klucz')}
   else if(a==='addFromDb'){const d=S.plan.find(x=>x.id===ui.target);if(!d)return;d.exercises.push({id:uid(),name:b.dataset.name,sets:3,reps:10});save();document.getElementById('db-results').innerHTML=dbResults();toast('Dodano do: '+d.name);return}
   else if(a==='start'){startDraft(id)}
   else if(a==='cancelDraft'){ui.draft=null}
@@ -506,11 +623,12 @@ document.addEventListener('click',e=>{
 document.addEventListener('input',e=>{
   const el=e.target;
   if(el.dataset.set){const[ei,si,k]=el.dataset.set.split(',');ui.draft.entries[ei].sets[si][k]=k==='done'?el.checked:el.value}
+  else if(el.id==='ai-desc'){ui.ai.desc=el.value}
   else if(el.id==='db-q'){ui.q=el.value;document.getElementById('db-results').innerHTML=dbResults()}
   else if(el.id==='draft-note')ui.draft.note=el.value;
   else if(el.id==='draft-date')ui.draft.date=el.value;
 });
-document.addEventListener('change',e=>{if(e.target.id==='ex-pick'){ui.ex=e.target.value;render()}if(e.target.id==='db-target'){ui.target=e.target.value;document.getElementById('db-results').innerHTML=dbResults()}});
+document.addEventListener('change',e=>{if(e.target.id==='ai-photo'&&e.target.files[0]){const f=e.target.files[0];shrink(f).then(b=>{ui.ai.photo=b;if(ui.ai.photoUrl)URL.revokeObjectURL(ui.ai.photoUrl);ui.ai.photoUrl=URL.createObjectURL(b);render()})}if(e.target.id==='ex-pick'){ui.ex=e.target.value;render()}if(e.target.id==='db-target'){ui.target=e.target.value;document.getElementById('db-results').innerHTML=dbResults()}});
 document.addEventListener('submit',e=>{
   e.preventDefault();const f=e.target,k=f.dataset.form;
   if(k==='addEx'){const id=f.dataset.id,n=document.getElementById('en-'+id).value.trim();if(!n)return;
