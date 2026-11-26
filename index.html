@@ -129,6 +129,10 @@ svg.chart text{fill:var(--muted);font-family:var(--f-num);font-size:10px}
 .eqhead .eqic{color:var(--accent)}
 .chips button.eqchip{display:inline-flex;align-items:center;gap:5px}
 .chips button .eqic{width:15px;height:15px}
+.mic{display:inline-flex;align-items:center;gap:6px}
+.mic.rec{background:var(--warn);border-color:var(--warn);color:#fff}
+@media (prefers-reduced-motion:no-preference){.mic.rec svg{animation:pulse 1s ease-in-out infinite}}
+@keyframes pulse{50%{transform:scale(1.25)}}
 .aibtn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px}
 .aibtn .eqic{width:20px;height:20px}
 .aicard{border-color:var(--accent)}
@@ -247,6 +251,28 @@ function viewBaza(){
 // Dwie drogi: wbudowany Claude (gdy aplikacja jest otwarta z claude.ai) albo własny klucz API (wszędzie indziej).
 let sampleApi=null;
 (async()=>{try{sampleApi=await window.claude?.use?.('sample')}catch(e){}if(tab==='baza'&&ui.ai.open)render()})();
+/* dyktowanie po polsku: wbudowane dyktowanie claude.ai albo rozpoznawanie mowy przeglądarki */
+let dictApi=null;const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+(async()=>{try{dictApi=await window.claude?.use?.('dictation')}catch(e){}if(dictApi){dictApi.onPartial(({text})=>voiceShow(text,false));dictApi.onFinal(({text})=>voiceShow(text,true));dictApi.onState(({state})=>{voiceSet(state==='listening'||state==='starting')})}if(tab==='baza'&&ui.ai.open)render()})();
+const canVoice=()=>!!(dictApi||SR);
+let voice={on:false,base:'',rec:null};
+function voiceShow(text,final){
+  const t=document.getElementById('ai-desc');
+  const joined=(voice.base&&text?voice.base.replace(/\s*$/,' '):voice.base)+text;
+  if(final){voice.base=joined;ui.ai.desc=joined}
+  if(t)t.value=final?joined:joined;
+}
+function voiceSet(on){voice.on=on;const b=document.getElementById('ai-mic');if(b){b.classList.toggle('rec',on);b.setAttribute('aria-pressed',on);b.querySelector('span').textContent=on?'Słucham… stuknij, by zakończyć':'Podyktuj'}if(!on){const t=document.getElementById('ai-desc');if(t){t.value=ui.ai.desc}}}
+function voiceToggle(){
+  if(voice.on){if(dictApi)dictApi.stop().catch(()=>{});else voice.rec?.stop();return}
+  voice.base=ui.ai.desc;
+  if(dictApi){dictApi.start({language:'pl'}).catch(e=>{voiceSet(false);if(e?.code==='not_granted')toast('Nie zezwolono na użycie mikrofonu');else if(e?.code!=='stopped')toast('Dyktowanie jest teraz niedostępne')});voiceSet(true);return}
+  const rec=new SR();rec.lang='pl-PL';rec.interimResults=true;rec.continuous=true;
+  rec.onresult=e=>{let fin='',part='';for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)fin+=t;else part+=t}if(fin)voiceShow(fin.trim(),true);if(part)voiceShow(part.trim(),false)};
+  rec.onerror=e=>{if(e.error==='not-allowed')toast('Nie zezwolono na użycie mikrofonu')};
+  rec.onend=()=>voiceSet(false);
+  voice.rec=rec;try{rec.start();voiceSet(true)}catch(e){toast('Dyktowanie jest teraz niedostępne')}
+}
 const aiMode=()=>sampleApi?'claude':S.ai?.key?'key':null;
 const AI_MODELS=[['claude-opus-5-5','Claude Opus 5.5 (najlepszy, ok. 2–5 gr za zapytanie)'],['claude-haiku-5-5','Claude Haiku 5.5 (najtańszy)']];
 function aiPrompt(desc,hasPhoto){
@@ -288,9 +314,9 @@ function aiPanel(){
   const mode=aiMode();
   const r=A.result;
   return `<div class="card aicard"><div class="row between"><h3>Dodaj z pomocą AI</h3><button class="ghost" data-act="aiClose" aria-label="Zamknij">✕</button></div>
-  <p class="muted" style="margin:0;font-size:.88rem">Opisz ćwiczenie własnymi słowami albo zrób zdjęcie maszyny. AI zaproponuje nazwę polską i angielską, partię i sprzęt.</p>
+  <p class="muted" style="margin:0;font-size:.88rem">Opisz ćwiczenie własnymi słowami (napisz albo podyktuj) lub zrób zdjęcie maszyny. AI zaproponuje nazwę polską i angielską, partię i sprzęt.</p>
   <textarea id="ai-desc" placeholder="Np. siedzę na maszynie, przyciągam uchwyt do brzucha, łokcie blisko ciała">${esc(A.desc)}</textarea>
-  <div class="row"><label class="btn" for="ai-photo" style="display:inline-flex;gap:6px;align-items:center"><svg class="eqic" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>${A.photo?'Zmień zdjęcie':'Zdjęcie maszyny'}</label>
+  <div class="row">${canVoice()?`<button id="ai-mic" class="mic${voice.on?' rec':''}" data-act="aiVoice" aria-pressed="${voice.on}"><svg class="eqic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg><span>${voice.on?'Słucham… stuknij, by zakończyć':'Podyktuj'}</span></button>`:''}<label class="btn" for="ai-photo" style="display:inline-flex;gap:6px;align-items:center"><svg class="eqic" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>${A.photo?'Zmień zdjęcie':'Zdjęcie maszyny'}</label>
   <input id="ai-photo" type="file" accept="image/*" capture="environment" hidden>
   ${A.photoUrl?`<img src="${A.photoUrl}" alt="Wybrane zdjęcie" class="aithumb"><button class="ghost" data-act="aiNoPhoto">Usuń zdjęcie</button>`:''}</div>
   ${mode?`<div class="row"><button class="primary" data-act="aiAsk" ${A.busy?'disabled':''}>${A.busy?'Rozpoznaję…':'Rozpoznaj'}</button><span class="muted" style="font-size:.78rem">${mode==='claude'?'Przez Twoje konto Claude':'Przez Twój klucz API'}</span></div>`
@@ -570,10 +596,11 @@ document.addEventListener('click',e=>{
   else if(a==='clearAll'){const p=S.plan.map(d=>({...d}));S={example:false,plan:p,sessions:[],bodyweight:[],notes:[]};ui.confirmClear=false;save();toast('Wyczyszczono historię. Plan został.')}
   else if(a==='grp'){ui.grp=b.dataset.g}
   else if(a==='eq'){ui.eq=b.dataset.e}
+  else if(a==='aiVoice'){voiceToggle();return}
   else if(a==='aiOpen'){ui.ai.open=true}
-  else if(a==='aiClose'){ui.ai={...ui.ai,open:false,result:null,error:''}}
+  else if(a==='aiClose'){if(voice.on)voiceToggle();ui.ai={...ui.ai,open:false,result:null,error:''}}
   else if(a==='aiNoPhoto'){ui.ai.photo=null;ui.ai.photoUrl=''}
-  else if(a==='aiAsk'){
+  else if(a==='aiAsk'){if(voice.on)voiceToggle();
     const A=ui.ai;if(!A.desc.trim()&&!A.photo){A.error='Opisz ćwiczenie albo dodaj zdjęcie.';render();return}
     A.busy=true;A.error='';A.result=null;render();
     askAI(A.desc.trim(),A.photo).then(r=>{

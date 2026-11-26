@@ -14,7 +14,7 @@ Osobista aplikacja na siłownię działająca w przeglądarce (także na telefon
 Każda partia mięśniowa ma swój kolor i mapę mięśni. Ekran Treningu otwiera baner z dzisiejszym dniem, pierścieniem treningów w tygodniu i serią tygodni z rzędu. Nowy rekord ciężaru nagradza medal z konfetti.
 
 ## Dodawanie ćwiczeń z AI
-W zakładce Ćwiczenia: opisz ćwiczenie albo zrób zdjęcie maszyny, a AI zaproponuje nazwę polską i angielską, partię, sprzęt i wskazówkę techniczną. Otwarta z claude.ai aplikacja korzysta z konta Claude (bez klucza). Poza claude.ai potrzebny jest własny klucz API (Plan → Ustawienia AI), zapisywany tylko w przeglądarce.
+W zakładce Ćwiczenia: opisz ćwiczenie albo zrób zdjęcie maszyny, a AI zaproponuje nazwę polską i angielską, partię, sprzęt i wskazówkę techniczną. Opis można podyktować po polsku (przycisk Podyktuj). Otwarta z claude.ai aplikacja korzysta z konta Claude (bez klucza). Poza claude.ai potrzebny jest własny klucz API (Plan → Ustawienia AI), zapisywany tylko w przeglądarce.
 
 ## Technologia
 Plik `index.html` (HTML + CSS + JavaScript, bez frameworków i bez serwera) oraz `exercises.js` z bazą ćwiczeń.
