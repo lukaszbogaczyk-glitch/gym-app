@@ -10,6 +10,9 @@ Osobista aplikacja na siłownię działająca w przeglądarce (także na telefon
 - **Porady** – porada dnia i ogólne wskazówki
 - **Obserwacje** – własne wpisy z kategoriami oraz automatyczne wnioski z danych
 
+## Wygląd
+Każda partia mięśniowa ma swój kolor i mapę mięśni. Ekran Treningu otwiera baner z dzisiejszym dniem, pierścieniem treningów w tygodniu i serią tygodni z rzędu. Nowy rekord ciężaru nagradza medal z konfetti.
+
 ## Technologia
 Plik `index.html` (HTML + CSS + JavaScript, bez frameworków i bez serwera) oraz `exercises.js` z bazą ćwiczeń.
 Dane zapisywane są w `localStorage` przeglądarki. Kopię zapasową można skopiować i przywrócić w zakładce Plan.
