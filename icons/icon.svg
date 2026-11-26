@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#16213D"/>
+  <g opacity=".08" stroke="#fff" stroke-width="3"><path d="M-40 40L40-40M-40 120L120-40M-40 200L200-40M-40 280L280-40M-40 360L360-40M-40 440L440-40M-40 520L520-40M40 520L520 40M120 520L520 120M200 520L520 200M280 520L520 280M360 520L520 360M440 520L520 440"/><path d="M-40 472L40 552M-40 392L120 552M-40 312L200 552M-40 232L280 552M-40 152L360 552M-40 72L440 552M-40-8L520 552M40-40L552 472M120-40L552 392M200-40L552 312M280-40L552 232M360-40L552 152M440-40L552 72"/></g>
+  <g transform="translate(256 256) rotate(-30)">
+    <rect x="-150" y="-10" width="300" height="20" rx="6" fill="#C9D1D8"/>
+    <rect x="-128" y="-78" width="34" height="156" rx="10" fill="#F0A202"/>
+    <rect x="-168" y="-56" width="30" height="112" rx="10" fill="#F0A202"/>
+    <rect x="94" y="-78" width="34" height="156" rx="10" fill="#F0A202"/>
+    <rect x="138" y="-56" width="30" height="112" rx="10" fill="#F0A202"/>
+    <rect x="-86" y="-14" width="12" height="28" rx="3" fill="#E4572E"/>
+    <rect x="74" y="-14" width="12" height="28" rx="3" fill="#E4572E"/>
+  </g>
+</svg>
