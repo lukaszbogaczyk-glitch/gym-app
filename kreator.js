@@ -8,9 +8,9 @@ const GOALS={
   forma:{l:'Ogólna forma',d:'Zdrowie i sprawność. 10–15 powtórzeń, umiarkowana objętość.',reps:12,range:'10–15',rest:60,spe:3}
 };
 const LEVELS={
-  pocz:{l:'Początkujący',d:'Do roku regularnych treningów.',cap:12,min:4},
-  sred:{l:'Średniozaawansowany',d:'1–3 lata, znasz technikę podstawowych ćwiczeń.',cap:18,min:6},
-  zaaw:{l:'Zaawansowany',d:'Ponad 3 lata, potrzebujesz większej objętości.',cap:24,min:8}
+  pocz:{l:'Początkujący',d:'Do roku regularnych treningów.',cap:10,top:12,small:6,min:4},
+  sred:{l:'Średniozaawansowany',d:'1–3 lata, znasz technikę podstawowych ćwiczeń.',cap:12,top:16,small:8,min:4},
+  zaaw:{l:'Zaawansowany',d:'Ponad 3 lata, większa objętość na priorytet.',cap:14,top:20,small:10,min:6}
 };
 const SPLITS={
   fbw:{l:'FBW (całe ciało)',days:n=>Array.from({length:n},(_,i)=>({name:'FBW '+'ABC'[i%3],groups:'all'}))},
@@ -75,9 +75,12 @@ function allowed(){
   return DB_FLAT.filter(i=>{if(w.noEq.includes(i.eq)||no.has(norm(i.pl)))return false;const l=loadOf(i.pl)||{};return !inj.some(x=>x[2](i,l))&&!hitM(l)});
 }
 function score(i,goal){const l=loadOf(i.pl)||{};const big=Object.values(l).filter(v=>v>=2).length;return big+(goal==='sila'&&i.eq==='sztanga'?3:0)+(i.eq==='maszyna'||i.eq==='wyciąg'?-.5:0)}
+const SMALL_G=['Forearms','Calves','Core'];
 function target(w){ // serie na partię w tygodniu z czasu treningu, przerw, poziomu i priorytetów
   const g=GOALS[w.goal],lv=LEVELS[w.level],perSession=Math.max(8,Math.floor((w.min-8)*60/(g.rest+40))),total=perSession*w.days,o={};
-  Object.entries(w.pr).forEach(([en,p])=>{if(p<=0)return;o[en]=Math.min(lv.cap,Math.max(lv.min,Math.round(total*p/100)))});return o;
+  // limity: partia priorytetowa (najwyższy % i wyraźnie ponad równy podział) do lv.top, reszta do lv.cap, małe partie (łydki, przedramiona, brzuch) do lv.small
+  const ent=Object.entries(w.pr).filter(([,p])=>p>0),mx=Math.max(0,...ent.map(([,p])=>p)),eq=100/Math.max(1,ent.length);
+  ent.forEach(([en,p])=>{const cap=SMALL_G.includes(en)?lv.small:p===mx&&(ent.length===1||p>=eq*1.5)?lv.top:lv.cap;o[en]=Math.min(cap,Math.max(Math.min(lv.min,cap),Math.round(total*p/100)))});return o;
 }
 function build(){
   const w=W(),g=GOALS[w.goal],lv=LEVELS[w.level],split=w.split||recSplit(w.days);
@@ -125,20 +128,20 @@ const weeklySets=()=>{const o={};W().plan.days.forEach(d=>d.ex.forEach(e=>{const
 const minutes=d=>Math.round(8+d.ex.reduce((s,e)=>s+e.sets*((e.rest||90)+40),0)/60);
 
 /* ---------- widok ---------- */
-const STEPS=['Cel','Poziom','Partie','Dni i czas','Sprzęt','Ograniczenia','Podgląd'];
+const STEPS=['Cel','Poziom','Dni i czas','Partie','Sprzęt','Ograniczenia','Podgląd'];
 const opt=(act,val,on,title,desc)=>`<button class="wz-opt${on?' on':''}" data-act="${act}" data-v="${esc(val)}" aria-pressed="${on}"><b>${title}</b>${desc?`<small>${desc}</small>`:''}</button>`;
 function stepBody(){
   const w=W();
   if(w.step===1)return `<h3>Jaki jest Twój cel?</h3><p class="muted wz-p">Od celu zależą zakresy powtórzeń i długość przerw.</p><div class="wz-opts">${Object.entries(GOALS).map(([k,g])=>opt('wzGoal',k,w.goal===k,g.l,g.d)).join('')}</div>`;
-  if(w.step===2)return `<h3>Jak długo trenujesz?</h3><p class="muted wz-p">Poziom decyduje o tygodniowej liczbie serii na partię.</p><div class="wz-opts">${Object.entries(LEVELS).map(([k,l])=>opt('wzLevel',k,w.level===k,l.l,`${l.d} Do ${l.cap} serii na partię w tygodniu.`)).join('')}</div>`;
-  if(w.step===3){const keys=Object.keys(w.pr),sum=keys.reduce((s,k)=>s+w.pr[k],0);
+  if(w.step===2)return `<h3>Jak długo trenujesz?</h3><p class="muted wz-p">Poziom ustala górny limit serii na partię w tygodniu.</p><div class="wz-opts">${Object.entries(LEVELS).map(([k,l])=>opt('wzLevel',k,w.level===k,l.l,`${l.d} Priorytet do ${l.top}, reszta do ${l.cap} serii.`)).join('')}</div>`;
+  if(w.step===4){const keys=Object.keys(w.pr),sum=keys.reduce((s,k)=>s+w.pr[k],0);
     return `<h3>Które partie Cię interesują?</h3><p class="muted wz-p">Zaznacz partie, a suwakami rozdziel między nie priorytet. Suma zawsze wynosi 100.</p>
     <div class="row"><button class="ghost" data-act="wzAllGroups">Całe ciało</button>${keys.length?'<button class="ghost" data-act="wzNoGroups">Wyczyść</button>':''}</div>
-    <div class="chips">${DB.map(g=>`<button data-act="wzGroup" data-v="${esc(g.en)}" aria-pressed="${g.en in w.pr}"><i class="wz-dot" style="background:${GROUP_COLOR[g.en]}"></i>${esc(g.group)}</button>`).join('')}</div>
+    <div class="chips wz-wrap">${DB.map(g=>`<button data-act="wzGroup" data-v="${esc(g.en)}" aria-pressed="${g.en in w.pr}"><i class="wz-dot" style="background:${GROUP_COLOR[g.en]}"></i>${esc(g.group)}</button>`).join('')}</div>
     ${keys.length?`<div class="card wz-sliders">${keys.map(en=>{const g=DB.find(x=>x.en===en);return `<label class="wz-sl" for="wz-pr-${esc(en)}"><span class="wz-sl-h"><span><i class="wz-dot" style="background:${GROUP_COLOR[en]}"></i>${esc(g?g.group:en)}</span><span class="wz-val"><b class="num" data-pr="${esc(en)}">${w.pr[en]}%</b><small class="num" data-est="${esc(en)}">${estTxt(en)}</small></span></span><input type="range" min="0" max="100" step="1" id="wz-pr-${esc(en)}" data-wzpr="${esc(en)}" value="${w.pr[en]}" style="--c:${GROUP_COLOR[en]}"></label>`}).join('')}
     <div class="row between wz-sum"><span class="eyebrow">Suma</span><span class="wz-val"><b class="num" id="wz-sum">${sum}%</b><small class="num" id="wz-est-sum">${estSum()}</small></span></div>
-    <p class="muted wz-p" style="font-size:.8rem">Serie to szacunek na tydzień dla celu „${GOALS[w.goal].l.toLowerCase()}”, poziomu „${LEVELS[w.level].l.toLowerCase()}” oraz ${w.days} treningów po ${w.min} min. Liczbę i długość treningów ustawisz w kroku 4.</p></div>`:'<p class="muted">Zaznacz co najmniej jedną partię.</p>'}`}
-  if(w.step===4){const rec=recSplit(w.days),sp=w.split||rec;
+    <p class="muted wz-p" style="font-size:.8rem">Serie to szacunek na tydzień dla celu „${GOALS[w.goal].l.toLowerCase()}”, poziomu „${LEVELS[w.level].l.toLowerCase()}” oraz ${w.days} treningów po ${w.min} min. Liczbę i długość treningów zmienisz w kroku 3.</p></div>`:'<p class="muted">Zaznacz co najmniej jedną partię.</p>'}`}
+  if(w.step===3){const rec=recSplit(w.days),sp=w.split||rec;
     return `<h3>Ile treningów w tygodniu?</h3><div class="chips">${[2,3,4,5,6].map(n=>`<button data-act="wzDays" data-v="${n}" aria-pressed="${w.days===n}">${n}×</button>`).join('')}</div>
     <h3>Ile minut na trening?</h3><div class="chips">${[30,45,60,75,90].map(n=>`<button data-act="wzMin" data-v="${n}" aria-pressed="${w.min===n}">${n} min</button>`).join('')}</div>
     <h3>Podział</h3><p class="muted wz-p">Przy ${w.days} treningach w tygodniu polecam: <b>${SPLITS[rec].l}</b>. Możesz wybrać inny.</p>
@@ -185,7 +188,7 @@ function stepBody(){
 }
 window.viewKreator=function(){
   const w=W();
-  const can=w.step!==3||Object.keys(w.pr).length>0;
+  const can=w.step!==4||Object.keys(w.pr).length>0;
   return `<section class="stack wz"><div class="row between"><button class="ghost back" data-act="wzClose">‹ Wyjdź z kreatora</button><span class="eyebrow">Krok ${w.step} z 7</span></div>
   <div><div class="eyebrow">Kreator planu</div><h2>${STEPS[w.step-1]}</h2></div>
   <ol class="wz-steps" aria-label="Kroki kreatora">${STEPS.map((s,i)=>`<li class="${i+1<w.step?'done':i+1===w.step?'on':''}"><button data-act="wzGo" data-v="${i+1}" ${i+1>w.step&&!can?'disabled':''} aria-label="Krok ${i+1}: ${s}"${i+1===w.step?' aria-current="step"':''}></button></li>`).join('')}</ol>
