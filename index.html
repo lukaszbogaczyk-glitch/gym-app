@@ -217,6 +217,30 @@ svg.chart text{fill:var(--muted);font-family:var(--f-num);font-size:10px}
 .aires input,.aires select{background:var(--surface)}
 .aierr{margin:0;color:var(--warn);font-size:.88rem}
 button[disabled]{opacity:.6;cursor:progress}
+.wz-cta{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:14px;border-radius:14px;border:1px solid var(--accent);background:var(--soft);color:var(--ink)}
+.wz-cta span:not(.pc-go){display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}.wz-cta small{color:var(--muted);font-weight:400}.wz-cta .eqic{color:var(--accent);width:24px;height:24px;flex:none}
+.wz-p{margin:0;font-size:.9rem}
+.wz-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.wz-steps button{width:100%;height:6px;padding:0;border:0;border-radius:3px;background:var(--line);cursor:pointer}
+.wz-steps li.done button{background:var(--accent);opacity:.55}.wz-steps li.on button{background:var(--accent)}
+.wz-opts{display:grid;gap:8px}
+.wz-opt{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:12px 14px;border-radius:12px}
+.wz-opt small{color:var(--muted);font-weight:400;font-size:.84rem}
+.wz-opt.on{border-color:var(--accent);background:var(--soft);box-shadow:inset 0 0 0 1px var(--accent)}
+.wz-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.wz-sliders{display:flex;flex-direction:column;gap:12px}
+.wz-sl{display:flex;flex-direction:column;gap:4px}.wz-sl-h{display:flex;justify-content:space-between;font-size:.9rem;font-weight:600}
+.wz-sl input[type=range]{width:100%;accent-color:var(--c,var(--accent));padding:0;border:0;background:none}
+.wz-sum{border-top:1px solid var(--line);padding-top:8px}
+.wz-eq{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.wz-eqb{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:12px;border-radius:12px;text-align:left}
+.wz-eqb small{font-weight:500;font-size:.76rem;color:var(--good)}.wz-eqb.off{opacity:.6;background:var(--bg)}.wz-eqb.off small{color:var(--muted)}.wz-eqb.off span{text-decoration:line-through}
+.wz-bars{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.wz-bar{display:grid;grid-template-columns:minmax(90px,38%) 1fr 28px;align-items:center;gap:8px;font-size:.84rem}
+.wz-bar i{height:8px;border-radius:4px;background:linear-gradient(90deg,var(--c) var(--w),var(--line) var(--w))}.wz-bar b{text-align:right}
+.wz-swap{background:var(--bg);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px;margin:0 0 8px}
+.wz-ainote{border-color:var(--accent)}
+.wz-nav{position:sticky;bottom:calc(72px + env(safe-area-inset-bottom,0px));background:var(--bg);padding:8px 0}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-weight:600;z-index:9}
 @media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}}
 </style>
@@ -735,9 +759,11 @@ function viewPlanuj(){
 }
 function viewPlans(){
   // lista planów; dni i ich dodawanie dopiero po wejściu w konkretny plan
+  if(ui.wiz&&window.viewKreator)return viewKreator();
   const sel=S.plans.find(p=>p.id===ui.planId)||null;ui.planId=sel?.id||null;
   const cnt=p=>p.days.reduce((a,d)=>a+d.exercises.length,0);
   if(!sel)return `<section class="stack"><div class="row between"><h2>Twoje plany</h2><button data-act="addPlan">+ Nowy plan</button></div>
+  <button class="wz-cta" data-act="wzOpen"><svg class="eqic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/></svg><span><b>Kreator planu</b><small>Cel, partie, dni i sprzęt. Plan ułoży się sam, a AI może go dopracować.</small></span><span class="pc-go" aria-hidden="true">›</span></button>
   ${S.plans.length?`<div class="plans">${S.plans.map(p=>`<button class="plancard" data-act="pickPlan" data-id="${p.id}" aria-label="Otwórz plan ${esc(p.name)}">${bodyMap(planGroups(p),54)}<span class="pc-txt"><b>${esc(p.name)}</b><small>${p.days.length} ${p.days.length===1?'dzień':'dni'} · ${cnt(p)} ćw.</small></span><span class="row" style="gap:6px;flex-wrap:nowrap">${p.id===S.activePlan?'<span class="chip good">Aktywny</span>':''}<span class="pc-go" aria-hidden="true">›</span></span></button>`).join('')}</div>`
    :'<div class="card"><p class="muted" style="margin:0">Nie masz jeszcze żadnego planu. Utwórz pierwszy, np. „Push Pull Legs” albo „FBW 3× w tygodniu”.</p></div>'}</section>`;
   return `<section class="stack"><div><button class="ghost back" data-act="closePlan">‹ Wszystkie plany</button></div><div class="card planhead">
@@ -965,6 +991,7 @@ document.addEventListener('submit',e=>{
 window.addEventListener('hashchange',()=>{const t=tabFromHash();if(t&&t!==tab){tab=t;render()}});
 render();
 </script>
+<script src="kreator.js"></script>
 <script>
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!document.getElementById('anim').hidden){animClose();return}if(ui.exInfo){ui.exInfo=null;document.getElementById('sheet').innerHTML=''}document.querySelector('.celebrate')?.remove()}});
 </script>
