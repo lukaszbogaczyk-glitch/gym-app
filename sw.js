@@ -1,7 +1,7 @@
 // Service worker: aplikacja działa bez internetu.
 // Pliki aplikacji: najpierw z pamięci, w tle odświeżane z sieci (nowa wersja przy kolejnym uruchomieniu).
 // Zmień VERSION przy każdej zmianie listy plików.
-const VERSION = 'v7';
+const VERSION = 'v8';
 const CACHE = 'silownia-' + VERSION;
 const APP = ['./', './index.html', './exercises.js', './technique.js', './muscles.js', './anim.js', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
