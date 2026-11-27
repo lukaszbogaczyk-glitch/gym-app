@@ -275,6 +275,7 @@ button[disabled]{opacity:.6;cursor:progress}
 @media (min-width:520px){.wz-own{grid-template-columns:minmax(0,1fr) minmax(0,2fr) auto}}
 .wz-ainote{border-color:var(--accent)}
 .wz-nav{position:sticky;bottom:calc(72px + env(safe-area-inset-bottom,0px));background:var(--bg);padding:8px 0}
+.xl-sum ul{margin:6px 0;padding-left:18px}.xl-sum li{margin:2px 0}.xl-err{color:var(--danger,#c62828)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-weight:600;z-index:9}
 @media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}}
 </style>
@@ -841,6 +842,7 @@ function viewUstawienia(){
   <section class="stack"><h2>Kopia zapasowa</h2><div class="card"><p class="muted" style="margin:0">Dane są zapisane tylko na tym urządzeniu. Skopiuj je od czasu do czasu, żeby ich nie stracić, albo żeby przenieść je na telefon.</p>
   <div class="row"><button data-act="copyBackup">Kopiuj dane</button></div>
   <textarea id="restore" placeholder="Wklej tu skopiowane dane, żeby je przywrócić"></textarea><div><button data-act="restore">Przywróć z wklejonych</button></div></div></section>
+  ${window.xlSection?xlSection():''}
   <section class="stack"><h2>Historia</h2><div class="card"><p class="muted" style="margin:0">${S.example?'Treningi, pomiary i wpisy są teraz przykładowe. ':''}Wyczyszczenie usuwa treningi, pomiary i wpisy. Plany i ustawienia zostają.</p>
   <div class="row">${ui.confirmClear?`<button class="danger" data-act="clearAll">Tak, wyczyść</button><button class="ghost" data-act="cancelClear">Anuluj</button>`:`<button data-act="askClear">Zacznij od zera</button>`}</div></div></section>`;
 }
@@ -1051,6 +1053,7 @@ window.addEventListener('hashchange',()=>{const t=tabFromHash();if(t&&t!==tab){t
 render();
 </script>
 <script src="kreator.js"></script>
+<script src="importxl.js"></script>
 <script>
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!document.getElementById('anim').hidden){animClose();return}if(ui.exInfo){ui.exInfo=null;document.getElementById('sheet').innerHTML=''}document.querySelector('.celebrate')?.remove()}});
 </script>
