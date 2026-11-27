@@ -153,6 +153,8 @@ svg.chart text{fill:var(--muted);font-family:var(--f-num);font-size:10px}
 .eqhead+.dbrow{border-top:0}
 .eqic{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .eqhead .eqic{color:var(--accent)}
+.actmini{display:inline-grid;place-items:center;width:22px;height:34px;flex:none}
+.dbrow .en .eqic{width:13px;height:13px;vertical-align:-2px;color:var(--muted)}
 .chips button.eqchip{display:inline-flex;align-items:center;gap:5px}
 .chips button .eqic{width:15px;height:15px}
 .mic{display:inline-flex;align-items:center;gap:6px}
@@ -280,7 +282,7 @@ const TABS=[
 // stare adresy (np. skróty z ekranu telefonu) prowadzą do nowych zakładek
 const OLD_TABS={trening:'trenuj',plan:'planuj',baza:'planuj',postepy:'wnioskuj',porady:'radz',notatki:'obserwuj'};
 function tabFromHash(){const h=location.hash.slice(1);if(h==='baza')ui.sub='cwiczenia';const t=OLD_TABS[h]||h;return TABS.some(x=>x[0]===t)?t:null}
-let ui={sub:'plany',planId:null,editPlan:null,confirmRmPlan:null,exInfo:null,ai:{open:false,desc:'',photo:null,photoUrl:'',busy:false,result:null,error:''},q:'',grp:'',eq:'',target:null,dayId:null,draft:null,ex:null,editDay:null,confirmClear:false};
+let ui={split:'akton',sub:'plany',planId:null,editPlan:null,confirmRmPlan:null,exInfo:null,ai:{open:false,desc:'',photo:null,photoUrl:'',busy:false,result:null,error:''},q:'',grp:'',eq:'',target:null,dayId:null,draft:null,ex:null,editDay:null,confirmClear:false};
 
 let tab=tabFromHash()||'trenuj';
 if(location.hash&&location.hash.slice(1)!==tab){try{history.replaceState(null,'','#'+tab)}catch(e){}}
@@ -308,13 +310,42 @@ function findEx(name){const n=norm(name);return DB_FLAT.find(i=>norm(i.pl)===n||
 function enName(name){const f=findEx(name);return f&&norm(f.en)!==norm(name)?f.en:''}
 const EQUIP=[['sztanga','Sztanga','<path d="M2 12h20M5 7v10M8 8v8M16 8v8M19 7v10"/>'],['hantle','Hantle','<path d="M8 12h8M4 9v6M7 8v8M17 8v8M20 9v6"/>'],['kettlebell','Kettlebell','<path d="M9 8a3 3 0 0 1 6 0"/><path d="M7.5 9h9l1.5 3a6 6 0 1 1-12 0z"/>'],['wyciąg','Wyciąg i linki','<path d="M12 2v9"/><circle cx="12" cy="4" r="2"/><path d="M8 11h8l-2 4h-4z"/><path d="M10 15v6M14 15v6"/>'],['maszyna','Maszyny','<rect x="4" y="3" width="6" height="18" rx="1"/><path d="M10 8h8M10 16h8M18 6v12"/>'],['masa ciała','Masa ciała','<circle cx="12" cy="4.5" r="2"/><path d="M12 7v7M7 10h10M12 14l-3 7M12 14l3 7"/>'],['inne','Inne','<circle cx="12" cy="12" r="8"/><path d="M8 12h8"/>']];
 const eqIcon=k=>`<svg class="eqic" viewBox="0 0 24 24">${(EQUIP.find(e=>e[0]===k)||EQUIP[6])[2]}</svg>`;
+/* podgrupy wg aktonu prowadzącego: mięsień o najwyższym obciążeniu w profilu ćwiczenia (przy remisie pierwszy w profilu) */
+const SUBGROUPS={
+ 'Chest':[['Góra klatki',['cu']],['Środek klatki',['cm']],['Dół klatki',['cl']]],
+ 'Back':[['Środek pleców (grubość)',['tm','ro','tl']],['Najszerszy (szerokość)',['la']],['Kaptury',['tu']],['Dół pleców',['er']]],
+ 'Shoulders':[['Przód barku',['df']],['Bok barku',['ds']],['Tył barku i rotatory',['dr','ro']]],
+ 'Biceps':[['Głowa długa',['bl']],['Głowa krótka',['bs']],['Ramienny i ramienno-promieniowy',['br','brr']]],
+ 'Triceps':[['Głowa długa',['tlo']],['Głowa boczna i przyśrodkowa',['tla','tme']]],
+ 'Forearms':[['Zginacze',['ff']],['Prostowniki',['fe']]],
+ 'Quads':[['Obszerne (boczny i przyśrodkowy)',['vl','vm']],['Prosty uda',['rf']],['Z akcentem na pośladki',['gx','gm']]],
+ 'Hamstrings & Glutes':[['Pośladek wielki',['gx']],['Pośladek średni',['gm']],['Dwugłowy i półścięgniste',['bf','se']],['Przywodziciele',['ad']]],
+ 'Calves':[['Brzuchaty łydki',['gmd','glt']],['Płaszczkowaty',['so']],['Piszczelowy przedni',['ti']]],
+ 'Core':[['Prosty brzucha',['ab']],['Skośne brzucha',['ob']]],
+ 'Full Body & Conditioning':[['Nogi i biodra',['vl','vm','rf','gx','bf','se','gmd','glt','so']],['Góra ciała',['df','ds','la','tm','tu','cm','tla','tlo']],['Brzuch',['ab','ob']]]
+};
+function leadSub(item,groupEn){
+  const M=window.MUSCLE_MAP,subs=SUBGROUPS[groupEn];if(!M||!subs)return -1;
+  let best=-1,bv=0;(M.load[item.pl]||M.byGroup[groupEn]||'').split(' ').forEach(t=>{const m=t.match(/^([a-z]+)([123])$/);if(!m)return;const si=subs.findIndex(x=>x[1].includes(m[1]));if(si>=0&&+m[2]>bv){bv=+m[2];best=si}});
+  return best;
+}
+// mała sylwetka z zaznaczonym aktonem (widok, na którym go widać)
+function actonMini(ids){
+  const M=window.MUSCLE_MAP;if(!M)return'';const load=Object.fromEntries(ids.map(id=>[id,3]));
+  const v=M.front.some(([id])=>load[id])&&!(M.back.filter(([id])=>load[id]).length>M.front.filter(([id])=>load[id]).length)?'front':'back';
+  return `<svg viewBox="0 0 100 196" height="34" width="18" aria-hidden="true">${heatView(v,load,{base:'var(--body)',skin:'var(--skin)',line:'var(--surface)',sw:.4,notitle:true})}</svg>`;
+}
 function dbResults(){
   const q=norm(ui.q);
   const groups=DB.filter(g=>!ui.grp||g.group===ui.grp).map(g=>({...g,items:g.items.filter(i=>(!ui.eq||i.eq===ui.eq)&&(!q||norm(i.pl).includes(q)||norm(i.en).includes(q)||norm(i.eq).includes(q)))})).filter(g=>g.items.length);
   if(!groups.length)return '<p class="muted">Nic nie znaleziono. Opisz ćwiczenie AI powyżej, a dopisze je do bazy.</p>';
   const inPlan=new Set(findDay(ui.target)?.exercises.map(e=>norm(e.name))||[]);
-  return groups.map(g=>`<section class="stack"><div class="ghead">${bodyMap([g.en],60)}<h2>${esc(g.group)} <span class="en" style="font-family:var(--f-body);text-transform:none">${esc(g.en)}</span></h2><span class="gchip" style="--c:${GROUP_COLOR[g.en]}"><i></i>${g.items.length}</span></div><div class="card">${EQUIP.filter(([k])=>g.items.some(i=>i.eq===k)).map(([k,label])=>`<div class="eqhead">${eqIcon(k)}<span>${label}</span><span class="muted num">${g.items.filter(i=>i.eq===k).length}</span></div>${g.items.filter(i=>i.eq===k).map(i=>`<div class="dbrow"><div><button class="exlink" data-act="exInfo" data-name="${esc(i.pl)}">${esc(i.pl)}</button><div class="en">${esc(i.en)}${i.custom?' · <span class="chip" style="font-size:.66rem">dodane przez AI</span>':''}</div></div>
-    ${!ui.target?'':inPlan.has(norm(i.pl))?'<span class="chip good">W planie</span>':`<button data-act="addFromDb" data-name="${esc(i.pl)}">+ Dodaj</button>`}</div>`).join('')}`).join('')}</div></section>`).join('');
+  const row=i=>`<div class="dbrow"><div><button class="exlink" data-act="exInfo" data-name="${esc(i.pl)}">${esc(i.pl)}</button><div class="en">${ui.split==='akton'?`${eqIcon(i.eq)} `:''}${esc(i.en)}${i.custom?' · <span class="chip" style="font-size:.66rem">dodane przez AI</span>':''}</div></div>
+    ${!ui.target?'':inPlan.has(norm(i.pl))?'<span class="chip good">W planie</span>':`<button data-act="addFromDb" data-name="${esc(i.pl)}">+ Dodaj</button>`}</div>`;
+  const parts=g=>ui.split==='akton'&&SUBGROUPS[g.en]
+    ? [...SUBGROUPS[g.en].map(([label,ids],si)=>({head:`<span class="actmini">${actonMini(ids)}</span><span>${label}</span>`,items:g.items.filter(i=>leadSub(i,g.en)===si)})),{head:'<span class="actmini"></span><span>Inne</span>',items:g.items.filter(i=>leadSub(i,g.en)<0)}]
+    : EQUIP.map(([k,label])=>({head:`${eqIcon(k)}<span>${label}</span>`,items:g.items.filter(i=>i.eq===k)}));
+  return groups.map(g=>`<section class="stack"><div class="ghead">${bodyMap([g.en],60)}<h2>${esc(g.group)} <span class="en" style="font-family:var(--f-body);text-transform:none">${esc(g.en)}</span></h2><span class="gchip" style="--c:${GROUP_COLOR[g.en]}"><i></i>${g.items.length}</span></div><div class="card">${parts(g).filter(x=>x.items.length).map(x=>`<div class="eqhead">${x.head}<span class="muted num">${x.items.length}</span></div>${x.items.map(row).join('')}`).join('')}</div></section>`).join('');
 }
 function viewBaza(){
   if(ui.target&&!findDay(ui.target))ui.target=null;
@@ -322,6 +353,7 @@ function viewBaza(){
   return `<div><div class="eyebrow">${DB_FLAT.length} ćwiczeń · ${DB.length} partii</div><h2>Baza ćwiczeń</h2><div class="muted" style="font-size:.85rem;margin-top:4px">Stuknij nazwę ćwiczenia, żeby zobaczyć technikę i porady.</div></div>
   <div class="card"><input id="db-q" type="search" placeholder="Szukaj po polsku lub angielsku, np. przysiad, row, hantle" value="${esc(ui.q)}" aria-label="Szukaj ćwiczenia">
   <div class="chips"><button data-act="grp" data-g="" aria-pressed="${!ui.grp}">Wszystkie</button>${DB.map(g=>`<button data-act="grp" data-g="${esc(g.group)}" aria-pressed="${ui.grp===g.group}">${esc(g.group)}</button>`).join('')}</div>
+  <div class="chips"><span class="eyebrow" style="align-self:center">Podział</span><button data-act="split" data-s="akton" aria-pressed="${ui.split==='akton'}">Akton prowadzący</button><button data-act="split" data-s="sprzet" aria-pressed="${ui.split==='sprzet'}">Sprzęt</button></div>
   <div class="chips"><button data-act="eq" data-e="" aria-pressed="${!ui.eq}">Każdy sprzęt</button>${EQUIP.map(([k,l])=>`<button data-act="eq" data-e="${k}" aria-pressed="${ui.eq===k}" class="eqchip">${eqIcon(k)}${l}</button>`).join('')}</div>
   ${S.plans.some(p=>p.days.length)?`<div class="row"><label class="eyebrow" for="db-target">Dodawaj do</label><select id="db-target" style="flex:1;min-width:0">${S.plans.filter(p=>p.days.length).map(p=>`<optgroup label="${esc(p.name)}">${p.days.map(d=>`<option value="${d.id}" ${d.id===ui.target?'selected':''}>${esc(p.name)} · ${esc(d.name)}</option>`).join('')}</optgroup>`).join('')}</select></div>`:'<p class="muted" style="margin:0">Dodaj plan i dzień treningowy w „Plany”, żeby wrzucać do niego ćwiczenia z bazy.</p>'}</div>
   ${aiPanel()}
@@ -346,7 +378,7 @@ function loadOf(name){
 function pathBox(d){const n=d.match(/-?\d+(?:\.\d+)?/g).map(Number);let b=[1e9,1e9,-1e9,-1e9];for(let i=0;i+1<n.length;i+=2)b=[Math.min(b[0],n[i]),Math.min(b[1],n[i+1]),Math.max(b[2],n[i]),Math.max(b[3],n[i+1])];return b}
 function heatView(view,load,o){
   const M=window.MUSCLE_MAP;
-  const half=M[view].map(([id,d])=>`<path d="${d}" vector-effect="non-scaling-stroke" fill="${load[id]?HEAT[load[id]]:o.base}"${load[id]?` class="hot h${load[id]}"`:''}><title>${esc(M.muscles[id][0])}${load[id]?' · '+HEAT_L[load[id]].toLowerCase().replace(/e$/,'y'):''}</title></path>`).join('');
+  const half=M[view].map(([id,d])=>`<path d="${d}" vector-effect="non-scaling-stroke" fill="${load[id]?HEAT[load[id]]:o.base}"${load[id]?` class="hot h${load[id]}"`:''}>${o.notitle?'':`<title>${esc(M.muscles[id][0])}${load[id]?' · '+HEAT_L[load[id]].toLowerCase().replace(/e$/,'y'):''}</title>`}</path>`).join('');
   const hot=M[view].filter(([id])=>load[id]).map(([id,d])=>`<path d="${d}" fill="url(#fibers)"/><path d="${d}" fill="url(#mshade)"/>`).join('');
   return `<path d="${BODY_SKIN}" fill="${o.skin}"/><path d="${BODY_SKIN}" fill="${o.skin}" ${MIRROR}/>
   <g stroke="${o.line}" stroke-width="${o.sw}" stroke-linejoin="round" vector-effect="non-scaling-stroke">${half}<g ${MIRROR}>${half}</g></g><g pointer-events="none">${hot}<g ${MIRROR}>${hot}</g></g>`;
@@ -795,6 +827,7 @@ document.addEventListener('click',e=>{
   else if(a==='hideInstall'){S.hideInstall=true;save();toast('Instrukcję znajdziesz w Planuj → Ustawienia')}
   else if(a==='grp'){ui.grp=b.dataset.g}
   else if(a==='eq'){ui.eq=b.dataset.e}
+  else if(a==='split'){ui.split=b.dataset.s}
   else if(a==='exInfo'){ui.exInfo=b.dataset.name;document.getElementById('sheet').innerHTML=exSheet();document.querySelector('.sheet .primary')?.focus();return}
   else if(a==='exClose'){ui.exInfo=null;document.getElementById('sheet').innerHTML='';return}
   else if(a==='aiVoice'){voiceToggle();return}
