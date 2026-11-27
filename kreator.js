@@ -8,9 +8,9 @@ const GOALS={
   forma:{l:'Ogólna forma',d:'Zdrowie i sprawność. 10–15 powtórzeń, umiarkowana objętość.',reps:12,range:'10–15',rest:60,spe:3}
 };
 const LEVELS={
-  pocz:{l:'Początkujący',d:'Do roku regularnych treningów.',cap:12,min:4},
-  sred:{l:'Średniozaawansowany',d:'1–3 lata, znasz technikę podstawowych ćwiczeń.',cap:18,min:6},
-  zaaw:{l:'Zaawansowany',d:'Ponad 3 lata, potrzebujesz większej objętości.',cap:24,min:8}
+  pocz:{l:'Początkujący',d:'Do roku regularnych treningów.',cap:10,top:12,small:6,min:4},
+  sred:{l:'Średniozaawansowany',d:'1–3 lata, znasz technikę podstawowych ćwiczeń.',cap:12,top:16,small:8,min:4},
+  zaaw:{l:'Zaawansowany',d:'Ponad 3 lata, większa objętość na priorytet.',cap:14,top:20,small:10,min:6}
 };
 const SPLITS={
   fbw:{l:'FBW (całe ciało)',days:n=>Array.from({length:n},(_,i)=>({name:'FBW '+'ABC'[i%3],groups:'all'}))},
@@ -75,9 +75,12 @@ function allowed(){
   return DB_FLAT.filter(i=>{if(w.noEq.includes(i.eq)||no.has(norm(i.pl)))return false;const l=loadOf(i.pl)||{};return !inj.some(x=>x[2](i,l))&&!hitM(l)});
 }
 function score(i,goal){const l=loadOf(i.pl)||{};const big=Object.values(l).filter(v=>v>=2).length;return big+(goal==='sila'&&i.eq==='sztanga'?3:0)+(i.eq==='maszyna'||i.eq==='wyciąg'?-.5:0)}
+const SMALL_G=['Forearms','Calves','Core'];
 function target(w){ // serie na partię w tygodniu z czasu treningu, przerw, poziomu i priorytetów
   const g=GOALS[w.goal],lv=LEVELS[w.level],perSession=Math.max(8,Math.floor((w.min-8)*60/(g.rest+40))),total=perSession*w.days,o={};
-  Object.entries(w.pr).forEach(([en,p])=>{if(p<=0)return;o[en]=Math.min(lv.cap,Math.max(lv.min,Math.round(total*p/100)))});return o;
+  // limity: partia priorytetowa (najwyższy % i wyraźnie ponad równy podział) do lv.top, reszta do lv.cap, małe partie (łydki, przedramiona, brzuch) do lv.small
+  const ent=Object.entries(w.pr).filter(([,p])=>p>0),mx=Math.max(0,...ent.map(([,p])=>p)),eq=100/Math.max(1,ent.length);
+  ent.forEach(([en,p])=>{const cap=SMALL_G.includes(en)?lv.small:p===mx&&(ent.length===1||p>=eq*1.5)?lv.top:lv.cap;o[en]=Math.min(cap,Math.max(Math.min(lv.min,cap),Math.round(total*p/100)))});return o;
 }
 function build(){
   const w=W(),g=GOALS[w.goal],lv=LEVELS[w.level],split=w.split||recSplit(w.days);
@@ -130,7 +133,7 @@ const opt=(act,val,on,title,desc)=>`<button class="wz-opt${on?' on':''}" data-ac
 function stepBody(){
   const w=W();
   if(w.step===1)return `<h3>Jaki jest Twój cel?</h3><p class="muted wz-p">Od celu zależą zakresy powtórzeń i długość przerw.</p><div class="wz-opts">${Object.entries(GOALS).map(([k,g])=>opt('wzGoal',k,w.goal===k,g.l,g.d)).join('')}</div>`;
-  if(w.step===2)return `<h3>Jak długo trenujesz?</h3><p class="muted wz-p">Poziom decyduje o tygodniowej liczbie serii na partię.</p><div class="wz-opts">${Object.entries(LEVELS).map(([k,l])=>opt('wzLevel',k,w.level===k,l.l,`${l.d} Do ${l.cap} serii na partię w tygodniu.`)).join('')}</div>`;
+  if(w.step===2)return `<h3>Jak długo trenujesz?</h3><p class="muted wz-p">Poziom ustala górny limit serii na partię w tygodniu.</p><div class="wz-opts">${Object.entries(LEVELS).map(([k,l])=>opt('wzLevel',k,w.level===k,l.l,`${l.d} Priorytet do ${l.top}, reszta do ${l.cap} serii.`)).join('')}</div>`;
   if(w.step===4){const keys=Object.keys(w.pr),sum=keys.reduce((s,k)=>s+w.pr[k],0);
     return `<h3>Które partie Cię interesują?</h3><p class="muted wz-p">Zaznacz partie, a suwakami rozdziel między nie priorytet. Suma zawsze wynosi 100.</p>
     <div class="row"><button class="ghost" data-act="wzAllGroups">Całe ciało</button>${keys.length?'<button class="ghost" data-act="wzNoGroups">Wyczyść</button>':''}</div>
