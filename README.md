@@ -10,7 +10,7 @@ Osobista aplikacja na siłownię działająca w przeglądarce (także na telefon
 - **Radź** – porada dnia i ogólne wskazówki
 
 ## Wygląd
-Każda partia mięśniowa ma swój kolor i mapę mięśni. Ekran Trenuj otwiera baner z dzisiejszym dniem, pierścieniem treningów w tygodniu i serią tygodni z rzędu. Nowy rekord ciężaru nagradza medal z konfetti.
+Każda partia mięśniowa ma swój kolor i mapę mięśni. Karta każdego ćwiczenia ma też mapę obciążenia: zbliżenie na pracujące mięśnie z podziałem na aktony (np. głowy bicepsa, części piersiowego, aktony naramiennego), w kolorach: główne, pomocnicze, stabilizujące (dane w `muscles.js`). Każde ćwiczenie ma też minimalistyczną animację ruchu: przycisk „Animacja ruchu” w karcie ćwiczenia otwiera ją na pełnym ekranie, z licznikiem powtórzeń, pauzą i wolnym tempem (`anim.js`). Ekran Trenuj otwiera baner z dzisiejszym dniem, pierścieniem treningów w tygodniu i serią tygodni z rzędu. Nowy rekord ciężaru nagradza medal z konfetti.
 
 ## Dodawanie ćwiczeń z AI
 W Planuj → Ćwiczenia: opisz ćwiczenie albo zrób zdjęcie maszyny, a AI zaproponuje nazwę polską i angielską, partię, sprzęt i wskazówkę techniczną. Opis można podyktować po polsku (przycisk Podyktuj). Otwarta z claude.ai aplikacja korzysta z konta Claude (bez klucza). Poza claude.ai potrzebny jest własny klucz API (Planuj → Ustawienia), zapisywany tylko w przeglądarce.

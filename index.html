@@ -154,6 +154,8 @@ svg.chart text{fill:var(--muted);font-family:var(--f-num);font-size:10px}
 .eqhead+.dbrow{border-top:0}
 .eqic{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .eqhead .eqic{color:var(--accent)}
+.actmini{display:inline-grid;place-items:center;width:22px;height:34px;flex:none}
+.dbrow .en .eqic{width:13px;height:13px;vertical-align:-2px;color:var(--muted)}
 .chips button.eqchip{display:inline-flex;align-items:center;gap:5px}
 .chips button .eqic{width:15px;height:15px}
 .mic{display:inline-flex;align-items:center;gap:6px}
@@ -173,6 +175,40 @@ svg.chart text{fill:var(--muted);font-family:var(--f-num);font-size:10px}
 .tips li::marker{color:var(--energy)}
 @media (prefers-reduced-motion:no-preference){.sheet{animation:up .25s ease-out}}
 @keyframes up{from{transform:translateY(30px);opacity:.001}to{transform:none;opacity:1}}
+.lm{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:stretch}
+.lm-zoom{position:relative;background:radial-gradient(120% 90% at 50% 40%,var(--surface),var(--bg));border:1px solid var(--line);border-radius:14px;overflow:hidden;min-height:220px;display:grid}
+.lm-zsvg{width:100%;height:100%;min-height:220px;max-height:340px}
+.lm-tag{position:absolute;left:10px;top:8px;font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;font-weight:700;color:var(--muted)}
+.lm-full{display:flex;flex-direction:column;gap:4px;justify-content:center}
+.lm-full figure{margin:0;display:flex;flex-direction:column;align-items:center;opacity:.55;border-radius:10px;padding:2px 4px}
+.lm-full figure.on{opacity:1;background:var(--bg)}
+.lm-full svg{height:104px;width:auto}
+.lm-full figcaption{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.lm-list{display:flex;flex-direction:column;gap:6px;font-size:.86rem}
+.lm-row{display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:baseline}
+.lm-key{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:.78rem}
+.lm-key i{width:11px;height:11px;border-radius:3px;flex:none}
+.lm-names{display:flex;flex-direction:column;gap:3px}
+.lm-names>span{display:flex;align-items:baseline}
+.lm-n{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--ink);color:var(--surface);font:700 .68rem/1 var(--f-body);margin-right:6px;vertical-align:1px}
+.lm-mark text{font-family:var(--f-body)}
+@media (max-width:360px){.lm{grid-template-columns:1fr}.lm-full{flex-direction:row;justify-content:center}}
+.animtile{position:relative;display:block;flex:none;width:100%;padding:0;border:0;border-radius:14px;overflow:hidden;background:var(--hero);cursor:pointer}
+.animtile>svg{display:block;width:100%;height:150px;opacity:.95}
+.animplay{position:absolute;left:12px;bottom:10px;display:inline-flex;align-items:center;gap:6px;background:var(--energy);color:#1A1300;border-radius:999px;padding:6px 12px 6px 8px;font-size:.86rem;font-weight:700}
+.animplay svg{width:16px;height:16px;fill:currentColor}
+#anim{position:fixed;inset:0;z-index:30;background:var(--hero);color:var(--hero-ink);display:flex;flex-direction:column;padding:calc(14px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));gap:8px}
+#anim[hidden]{display:none}
+#anim .eyebrow{color:var(--hero-muted)}
+#anim h2{font-size:1.7rem}
+#anim .en{color:var(--hero-muted)}
+.anim-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.anim-x{background:rgba(255,255,255,.1);border:0;color:var(--hero-ink);width:42px;height:42px;border-radius:50%;font-size:1.1rem;flex:none}
+#anim-svg{flex:1;width:100%;min-height:0}
+.anim-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.anim-bar button:not(.primary){background:rgba(255,255,255,.1);border-color:transparent;color:var(--hero-ink)}
+.anim-bar .primary{background:var(--energy);border-color:var(--energy);color:#1A1300}
+.anim-reps{font-size:1.6rem;font-weight:700;color:var(--energy)}
 .aibtn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px}
 .aibtn .eqic{width:20px;height:20px}
 .aicard{border-color:var(--accent)}
@@ -186,14 +222,17 @@ button[disabled]{opacity:.6;cursor:progress}
 </style>
 
 <!-- pwa:start --></head><body><!-- pwa:end -->
-<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="mshade" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".38"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".18"/></linearGradient></defs></svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="mshade" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".38"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".18"/></linearGradient><pattern id="fibers" width="2.2" height="2.2" patternUnits="userSpaceOnUse" patternTransform="rotate(62)"><line x1="0" y1="0" x2="0" y2="2.2" stroke="#000" stroke-opacity=".13" stroke-width=".55"/></pattern></defs></svg>
 <div class="wrap" id="app"></div>
 <div id="sheet"></div>
+<div id="anim" hidden></div>
 <nav class="tabs" id="tabs"></nav>
 <div class="toast" id="toast" hidden></div>
 
 <script src="exercises.js"></script>
 <script src="technique.js"></script>
+<script src="muscles.js"></script>
+<script src="anim.js"></script>
 <script>
 const KEY='silownia.v1';
 const uid=()=>Math.random().toString(36).slice(2,9);
@@ -262,7 +301,7 @@ const TABS=[
 // stare adresy (np. skróty z ekranu telefonu) prowadzą do nowych zakładek
 const OLD_TABS={trening:'trenuj',plan:'planuj',baza:'planuj',postepy:'wnioskuj',porady:'radz',notatki:'obserwuj'};
 function tabFromHash(){const h=location.hash.slice(1);if(h==='baza')ui.sub='cwiczenia';const t=OLD_TABS[h]||h;return TABS.some(x=>x[0]===t)?t:null}
-let ui={sub:'plany',planId:null,editPlan:null,confirmRmPlan:null,exInfo:null,ai:{open:false,desc:'',photo:null,photoUrl:'',busy:false,result:null,error:''},q:'',grp:'',eq:'',target:null,dayId:null,draft:null,ex:null,editDay:null,confirmClear:false};
+let ui={split:'akton',sub:'plany',planId:null,editPlan:null,confirmRmPlan:null,exInfo:null,ai:{open:false,desc:'',photo:null,photoUrl:'',busy:false,result:null,error:''},q:'',grp:'',eq:'',target:null,dayId:null,draft:null,ex:null,editDay:null,confirmClear:false};
 
 let tab=tabFromHash()||'trenuj';
 if(location.hash&&location.hash.slice(1)!==tab){try{history.replaceState(null,'','#'+tab)}catch(e){}}
@@ -290,13 +329,42 @@ function findEx(name){const n=norm(name);return DB_FLAT.find(i=>norm(i.pl)===n||
 function enName(name){const f=findEx(name);return f&&norm(f.en)!==norm(name)?f.en:''}
 const EQUIP=[['sztanga','Sztanga','<path d="M2 12h20M5 7v10M8 8v8M16 8v8M19 7v10"/>'],['hantle','Hantle','<path d="M8 12h8M4 9v6M7 8v8M17 8v8M20 9v6"/>'],['kettlebell','Kettlebell','<path d="M9 8a3 3 0 0 1 6 0"/><path d="M7.5 9h9l1.5 3a6 6 0 1 1-12 0z"/>'],['wyciąg','Wyciąg i linki','<path d="M12 2v9"/><circle cx="12" cy="4" r="2"/><path d="M8 11h8l-2 4h-4z"/><path d="M10 15v6M14 15v6"/>'],['maszyna','Maszyny','<rect x="4" y="3" width="6" height="18" rx="1"/><path d="M10 8h8M10 16h8M18 6v12"/>'],['masa ciała','Masa ciała','<circle cx="12" cy="4.5" r="2"/><path d="M12 7v7M7 10h10M12 14l-3 7M12 14l3 7"/>'],['inne','Inne','<circle cx="12" cy="12" r="8"/><path d="M8 12h8"/>']];
 const eqIcon=k=>`<svg class="eqic" viewBox="0 0 24 24">${(EQUIP.find(e=>e[0]===k)||EQUIP[6])[2]}</svg>`;
+/* podgrupy wg aktonu prowadzącego: mięsień o najwyższym obciążeniu w profilu ćwiczenia (przy remisie pierwszy w profilu) */
+const SUBGROUPS={
+ 'Chest':[['Góra klatki',['cu']],['Środek klatki',['cm']],['Dół klatki',['cl']]],
+ 'Back':[['Środek pleców (grubość)',['tm','ro','tl']],['Najszerszy (szerokość)',['la']],['Kaptury',['tu']],['Dół pleców',['er']]],
+ 'Shoulders':[['Przód barku',['df']],['Bok barku',['ds']],['Tył barku i rotatory',['dr','ro']]],
+ 'Biceps':[['Głowa długa',['bl']],['Głowa krótka',['bs']],['Ramienny i ramienno-promieniowy',['br','brr']]],
+ 'Triceps':[['Głowa długa',['tlo']],['Głowa boczna i przyśrodkowa',['tla','tme']]],
+ 'Forearms':[['Zginacze',['ff']],['Prostowniki',['fe']]],
+ 'Quads':[['Obszerne (boczny i przyśrodkowy)',['vl','vm']],['Prosty uda',['rf']],['Z akcentem na pośladki',['gx','gm']]],
+ 'Hamstrings & Glutes':[['Pośladek wielki',['gx']],['Pośladek średni',['gm']],['Dwugłowy i półścięgniste',['bf','se']],['Przywodziciele',['ad']]],
+ 'Calves':[['Brzuchaty łydki',['gmd','glt']],['Płaszczkowaty',['so']],['Piszczelowy przedni',['ti']]],
+ 'Core':[['Prosty brzucha',['ab']],['Skośne brzucha',['ob']]],
+ 'Full Body & Conditioning':[['Nogi i biodra',['vl','vm','rf','gx','bf','se','gmd','glt','so']],['Góra ciała',['df','ds','la','tm','tu','cm','tla','tlo']],['Brzuch',['ab','ob']]]
+};
+function leadSub(item,groupEn){
+  const M=window.MUSCLE_MAP,subs=SUBGROUPS[groupEn];if(!M||!subs)return -1;
+  let best=-1,bv=0;(M.load[item.pl]||M.byGroup[groupEn]||'').split(' ').forEach(t=>{const m=t.match(/^([a-z]+)([123])$/);if(!m)return;const si=subs.findIndex(x=>x[1].includes(m[1]));if(si>=0&&+m[2]>bv){bv=+m[2];best=si}});
+  return best;
+}
+// mała sylwetka z zaznaczonym aktonem (widok, na którym go widać)
+function actonMini(ids){
+  const M=window.MUSCLE_MAP;if(!M)return'';const load=Object.fromEntries(ids.map(id=>[id,3]));
+  const v=M.front.some(([id])=>load[id])&&!(M.back.filter(([id])=>load[id]).length>M.front.filter(([id])=>load[id]).length)?'front':'back';
+  return `<svg viewBox="0 0 100 196" height="34" width="18" aria-hidden="true">${heatView(v,load,{base:'var(--body)',skin:'var(--skin)',line:'var(--surface)',sw:.4,notitle:true})}</svg>`;
+}
 function dbResults(){
   const q=norm(ui.q);
   const groups=DB.filter(g=>!ui.grp||g.group===ui.grp).map(g=>({...g,items:g.items.filter(i=>(!ui.eq||i.eq===ui.eq)&&(!q||norm(i.pl).includes(q)||norm(i.en).includes(q)||norm(i.eq).includes(q)))})).filter(g=>g.items.length);
   if(!groups.length)return '<p class="muted">Nic nie znaleziono. Opisz ćwiczenie AI powyżej, a dopisze je do bazy.</p>';
   const inPlan=new Set(findDay(ui.target)?.exercises.map(e=>norm(e.name))||[]);
-  return groups.map(g=>`<section class="stack"><div class="ghead">${bodyMap([g.en],60)}<h2>${esc(g.group)} <span class="en" style="font-family:var(--f-body);text-transform:none">${esc(g.en)}</span></h2><span class="gchip" style="--c:${GROUP_COLOR[g.en]}"><i></i>${g.items.length}</span></div><div class="card">${EQUIP.filter(([k])=>g.items.some(i=>i.eq===k)).map(([k,label])=>`<div class="eqhead">${eqIcon(k)}<span>${label}</span><span class="muted num">${g.items.filter(i=>i.eq===k).length}</span></div>${g.items.filter(i=>i.eq===k).map(i=>`<div class="dbrow"><div><button class="exlink" data-act="exInfo" data-name="${esc(i.pl)}">${esc(i.pl)}</button><div class="en">${esc(i.en)}${i.custom?' · <span class="chip" style="font-size:.66rem">dodane przez AI</span>':''}</div></div>
-    ${!ui.target?'':inPlan.has(norm(i.pl))?'<span class="chip good">W planie</span>':`<button data-act="addFromDb" data-name="${esc(i.pl)}">+ Dodaj</button>`}</div>`).join('')}`).join('')}</div></section>`).join('');
+  const row=i=>`<div class="dbrow"><div><button class="exlink" data-act="exInfo" data-name="${esc(i.pl)}">${esc(i.pl)}</button><div class="en">${ui.split==='akton'?`${eqIcon(i.eq)} `:''}${esc(i.en)}${i.custom?' · <span class="chip" style="font-size:.66rem">dodane przez AI</span>':''}</div></div>
+    ${!ui.target?'':inPlan.has(norm(i.pl))?'<span class="chip good">W planie</span>':`<button data-act="addFromDb" data-name="${esc(i.pl)}">+ Dodaj</button>`}</div>`;
+  const parts=g=>ui.split==='akton'&&SUBGROUPS[g.en]
+    ? [...SUBGROUPS[g.en].map(([label,ids],si)=>({head:`<span class="actmini">${actonMini(ids)}</span><span>${label}</span>`,items:g.items.filter(i=>leadSub(i,g.en)===si)})),{head:'<span class="actmini"></span><span>Inne</span>',items:g.items.filter(i=>leadSub(i,g.en)<0)}]
+    : EQUIP.map(([k,label])=>({head:`${eqIcon(k)}<span>${label}</span>`,items:g.items.filter(i=>i.eq===k)}));
+  return groups.map(g=>`<section class="stack"><div class="ghead">${bodyMap([g.en],60)}<h2>${esc(g.group)} <span class="en" style="font-family:var(--f-body);text-transform:none">${esc(g.en)}</span></h2><span class="gchip" style="--c:${GROUP_COLOR[g.en]}"><i></i>${g.items.length}</span></div><div class="card">${parts(g).filter(x=>x.items.length).map(x=>`<div class="eqhead">${x.head}<span class="muted num">${x.items.length}</span></div>${x.items.map(row).join('')}`).join('')}</div></section>`).join('');
 }
 function viewBaza(){
   if(ui.target&&!findDay(ui.target))ui.target=null;
@@ -304,6 +372,7 @@ function viewBaza(){
   return `<div><div class="eyebrow">${DB_FLAT.length} ćwiczeń · ${DB.length} partii</div><h2>Baza ćwiczeń</h2><div class="muted" style="font-size:.85rem;margin-top:4px">Stuknij nazwę ćwiczenia, żeby zobaczyć technikę i porady.</div></div>
   <div class="card"><input id="db-q" type="search" placeholder="Szukaj po polsku lub angielsku, np. przysiad, row, hantle" value="${esc(ui.q)}" aria-label="Szukaj ćwiczenia">
   <div class="chips"><button data-act="grp" data-g="" aria-pressed="${!ui.grp}">Wszystkie</button>${DB.map(g=>`<button data-act="grp" data-g="${esc(g.group)}" aria-pressed="${ui.grp===g.group}">${esc(g.group)}</button>`).join('')}</div>
+  <div class="chips"><span class="eyebrow" style="align-self:center">Podział</span><button data-act="split" data-s="akton" aria-pressed="${ui.split==='akton'}">Akton prowadzący</button><button data-act="split" data-s="sprzet" aria-pressed="${ui.split==='sprzet'}">Sprzęt</button></div>
   <div class="chips"><button data-act="eq" data-e="" aria-pressed="${!ui.eq}">Każdy sprzęt</button>${EQUIP.map(([k,l])=>`<button data-act="eq" data-e="${k}" aria-pressed="${ui.eq===k}" class="eqchip">${eqIcon(k)}${l}</button>`).join('')}</div>
   ${S.plans.some(p=>p.days.length)?`<div class="row"><label class="eyebrow" for="db-target">Dodawaj do</label><select id="db-target" style="flex:1;min-width:0">${S.plans.filter(p=>p.days.length).map(p=>`<optgroup label="${esc(p.name)}">${p.days.map(d=>`<option value="${d.id}" ${d.id===ui.target?'selected':''}>${esc(p.name)} · ${esc(d.name)}</option>`).join('')}</optgroup>`).join('')}</select></div>`:'<p class="muted" style="margin:0">Dodaj plan i dzień treningowy w „Plany”, żeby wrzucać do niego ćwiczenia z bazy.</p>'}</div>
   ${aiPanel()}
@@ -317,14 +386,93 @@ function techOf(name){
   if(f&&(f.steps||f.tips||f.tip))return{steps:f.steps||[],tips:f.tips||(f.tip?[f.tip]:[])};
   return null;
 }
+/* ---------- mapa obciążenia: które aktony pracują w ćwiczeniu ---------- */
+const HEAT={3:'#E0352B',2:'#F28C28',1:'#F6CB45'};
+const HEAT_L={3:'Główne',2:'Pomocnicze',1:'Stabilizujące'};
+function loadOf(name){
+  const M=window.MUSCLE_MAP,f=findEx(name);if(!M||!f)return null;
+  const s=M.load[f.pl]||M.byGroup[f.groupEn];if(!s)return null;
+  const o={};s.split(' ').forEach(t=>{const m=t.match(/^([a-z]+)([123])$/);if(m)o[m[1]]=+m[2]});return o;
+}
+function pathBox(d){const n=d.match(/-?\d+(?:\.\d+)?/g).map(Number);let b=[1e9,1e9,-1e9,-1e9];for(let i=0;i+1<n.length;i+=2)b=[Math.min(b[0],n[i]),Math.min(b[1],n[i+1]),Math.max(b[2],n[i]),Math.max(b[3],n[i+1])];return b}
+function heatView(view,load,o){
+  const M=window.MUSCLE_MAP;
+  const half=M[view].map(([id,d])=>`<path d="${d}" vector-effect="non-scaling-stroke" fill="${load[id]?HEAT[load[id]]:o.base}"${load[id]?` class="hot h${load[id]}"`:''}>${o.notitle?'':`<title>${esc(M.muscles[id][0])}${load[id]?' · '+HEAT_L[load[id]].toLowerCase().replace(/e$/,'y'):''}</title>`}</path>`).join('');
+  const hot=M[view].filter(([id])=>load[id]).map(([id,d])=>`<path d="${d}" fill="url(#fibers)"/><path d="${d}" fill="url(#mshade)"/>`).join('');
+  return `<path d="${BODY_SKIN}" fill="${o.skin}"/><path d="${BODY_SKIN}" fill="${o.skin}" ${MIRROR}/>
+  <g stroke="${o.line}" stroke-width="${o.sw}" stroke-linejoin="round" vector-effect="non-scaling-stroke">${half}<g ${MIRROR}>${half}</g></g><g pointer-events="none">${hot}<g ${MIRROR}>${hot}</g></g>`;
+}
+function loadMap(name){
+  const M=window.MUSCLE_MAP,load=loadOf(name);if(!load)return'';
+  const o={base:'var(--body)',skin:'var(--skin)',line:'var(--surface)',sw:.7};
+  const score=v=>M[v].reduce((a,[id])=>a+(load[id]||0)**2,0);
+  const main=score('back')>score('front')?'back':'front';
+  // zbliżenie: prostokąt obejmujący mięśnie główne i pomocnicze (obie strony ciała)
+  let b=[1e9,1e9,-1e9,-1e9];
+  M[main].forEach(([id,d])=>{if((load[id]||0)>=2){const[x0,y0,x1,y1]=pathBox(d);b=[Math.min(b[0],x0,100-x1),Math.min(b[1],y0),Math.max(b[2],x1,100-x0),Math.max(b[3],y1)]}});
+  if(b[0]>b[2])b=[0,0,100,196];
+  let w=b[2]-b[0]+18,h=b[3]-b[1]+18,cx=(b[0]+b[2])/2,cy=(b[1]+b[3])/2;
+  w=Math.max(w,36);h=Math.max(h,30);if(w/h<1.2)w=h*1.2;else h=w/1.2;
+  // numerowane znaczniki na pracujących aktonach (lewa strona sylwetki), te same numery na liście
+  const order=Object.keys(load).sort((a,c)=>load[c]-load[a]);const num={};let k=0;
+  order.forEach(id=>{const pth=M[main].find(x=>x[0]===id);if(pth)num[id]={n:++k,box:pathBox(pth[1])}});
+  const r=Math.max(w*.034,1.9);
+  const marks=Object.entries(num).map(([id,{n,box}])=>{const x=(box[0]+box[2])/2,y=(box[1]+box[3])/2;return `<g class="lm-mark"><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(2)}" fill="var(--ink)" stroke="#fff" stroke-width="1.4" vector-effect="non-scaling-stroke"/><text x="${x.toFixed(1)}" y="${(y+r*.38).toFixed(2)}" font-size="${(r*1.1).toFixed(2)}" text-anchor="middle" fill="var(--surface)" font-weight="700">${n}</text></g>`}).join('');
+  const zoom=`<svg viewBox="${(cx-w/2).toFixed(1)} ${(cy-h/2).toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)}" class="lm-zsvg" role="img" aria-label="Zbliżenie na pracujące mięśnie">${heatView(main,load,{...o,sw:1.6})}${marks}</svg>`;
+  const full=v=>`<figure class="${v===main?'on':''}"><svg viewBox="0 0 100 196" height="170" width="87" aria-hidden="true">${heatView(v,load,o)}</svg><figcaption>${v==='front'?'Przód':'Tył'}</figcaption></figure>`;
+  const list=[3,2,1].map(k=>{const ids=Object.keys(load).filter(id=>load[id]===k);return ids.length?`<div class="lm-row"><span class="lm-key"><i style="background:${HEAT[k]}"></i>${HEAT_L[k]}</span><span class="lm-names">${ids.map(id=>`<span>${num[id]?`<b class="lm-n">${num[id].n}</b>`:''}${esc(M.muscles[id][0])}</span>`).join('')}</span></div>`:''}).join('');
+  return `<section class="stack" style="gap:8px"><h3>Mapa obciążenia</h3>
+  <div class="lm"><div class="lm-zoom">${zoom}<span class="lm-tag">Zbliżenie · ${main==='front'?'przód':'tył'}</span></div><div class="lm-full">${full('front')}${full('back')}</div></div>
+  <div class="lm-list">${list}</div></section>`;
+}
+/* ---------- animacja ruchu na pełnym ekranie ---------- */
+const ANIM_COL={f:'#F3F6FF',w:'#F0A202',m:'#5E6E92'};
+const ANIM_COL_TILE={f:'#F3F6FF',w:'#F0A202',m:'#5E6E92'};
+function animSpec(name){const f=findEx(name);return f&&window.EXERCISE_ANIM?window.EXERCISE_ANIM.specFor(f.pl,f.groupEn):null}
+const anim={raf:0,t0:0,paused:false,speed:1,reps:0,name:'',spec:null,hold:false,at:0,last:0};
+const ease=x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;
+function animK(ms){ // cykl: ruch A→B, pauza, powrót B→A, pauza; zwraca położenie 0..1 i numer powtórzenia
+  const up=anim.hold?2200:1100,top=anim.hold?300:280,down=anim.hold?2200:1500,bot=anim.hold?300:350,T=up+top+down+bot;
+  const c=Math.floor(ms/T),x=ms%T;
+  const k=x<up?ease(x/up):x<up+top?1:x<up+top+down?1-ease((x-up-top)/down):0;
+  return{k,c};
+}
+function animOpen(name){
+  const sp=animSpec(name);if(!sp)return;
+  anim.name=name;anim.spec=sp.spec;anim.hold=window.EXERCISE_ANIM.hold.has(sp.key);anim.paused=false;anim.at=0;anim.last=performance.now();anim.speed=1;
+  const el=document.getElementById('anim');const f=findEx(name);
+  el.innerHTML=`<div class="anim-top"><div><div class="eyebrow">Animacja ruchu</div><h2>${esc(f?f.pl:name)}</h2>${f?`<div class="en">${esc(f.en)}</div>`:''}</div><button class="anim-x" data-act="animClose" aria-label="Zamknij animację">✕</button></div>
+  <svg id="anim-svg" viewBox="${matchMedia('(orientation: portrait)').matches?'28 4 144 154':'0 0 200 160'}" role="img" aria-label="Animacja ruchu: ${esc(f?f.pl:name)}"></svg>
+  <div class="anim-bar"><span class="anim-reps num" id="anim-reps">0</span><span class="eyebrow" style="color:var(--hero-muted)">powtórzeń</span><span style="flex:1"></span>
+  <button data-act="animSpeed" id="anim-speed">Tempo: normalne</button><button class="primary" data-act="animPause" id="anim-pause">Pauza</button></div>`;
+  el.hidden=false;document.body.style.overflow='hidden';
+  try{el.requestFullscreen?.({navigationUI:'hide'}).catch(()=>{})}catch(e){}
+  el.querySelector('.anim-x').focus();
+  cancelAnimationFrame(anim.raf);anim.raf=requestAnimationFrame(animTick);
+}
+function animTick(now){
+  const svg=document.getElementById('anim-svg');if(!svg)return;
+  if(!anim.paused)anim.at+=(now-anim.last)*anim.speed;anim.last=now;
+  const{k,c}=animK(anim.at);
+  svg.innerHTML=window.EXERCISE_ANIM.draw(anim.spec,k,ANIM_COL);
+  const r=document.getElementById('anim-reps');if(r&&+r.textContent!==c)r.textContent=c;
+  anim.raf=requestAnimationFrame(animTick);
+}
+function animClose(){
+  cancelAnimationFrame(anim.raf);const el=document.getElementById('anim');el.hidden=true;el.innerHTML='';document.body.style.overflow='';
+  try{if(document.fullscreenElement)document.exitFullscreen().catch(()=>{})}catch(e){}
+}
 function exSheet(){
   const name=ui.exInfo;if(!name)return'';
+  const lm=loadMap(name);
   const f=findEx(name),t=techOf(name),b=bestOf(name);
   const eq=f&&EQUIP.find(e=>e[0]===f.eq);
   return `<div class="sheet-bg" data-act="exClose"></div><div class="sheet" role="dialog" aria-label="${esc(name)}">
   <div class="sheet-grab"></div>
-  <div class="exhead">${f?bodyMap([f.groupEn],84,{views:'both'}):''}<div class="stack" style="gap:4px"><h2>${esc(f?f.pl:name)}</h2>${f?`<div class="en">${esc(f.en)}</div><div class="row" style="gap:6px">${gchip(f.groupEn)}${eq?`<span class="gchip">${eqIcon(eq[0])}${eq[1]}</span>`:''}</div>`:''}</div></div>
+  <div class="exhead">${f&&!lm?bodyMap([f.groupEn],84,{views:'both'}):'<span></span>'}<div class="stack" style="gap:4px"><h2>${esc(f?f.pl:name)}</h2>${f?`<div class="en">${esc(f.en)}</div><div class="row" style="gap:6px">${gchip(f.groupEn)}${eq?`<span class="gchip">${eqIcon(eq[0])}${eq[1]}</span>`:''}</div>`:''}</div></div>
+  ${animSpec(name)?`<button class="animtile" data-act="animOpen" data-name="${esc(name)}" aria-label="Pokaż animację ruchu na pełnym ekranie"><svg viewBox="0 0 200 160" aria-hidden="true">${window.EXERCISE_ANIM.draw(animSpec(name).spec,.5,ANIM_COL_TILE)}</svg><span class="animplay"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Animacja ruchu</span></button>`:''}
   ${b?`<div class="refs"><div><span class="eyebrow">Twój rekord</span><span class="num">${fmtKg(b.w)} kg × ${b.wr}</span></div><div><span class="eyebrow">Najwięcej powtórzeń</span><span class="num">${b.r}</span></div></div>`:''}
+  ${lm}
   ${t?`<section class="stack" style="gap:8px"><h3>Technika</h3><ol class="steps">${t.steps.map(x=>`<li>${esc(x)}</li>`).join('')}</ol></section>
   <section class="stack" style="gap:8px"><h3>Porady</h3><ul class="tips">${t.tips.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></section>`
    :'<p class="muted">Brak opisu techniki dla tego ćwiczenia. Ćwiczenia dodane przez AI dostają opis automatycznie.</p>'}
@@ -738,8 +886,13 @@ document.addEventListener('click',e=>{
   else if(a==='hideInstall'){S.hideInstall=true;save();toast('Instrukcję znajdziesz w Planuj → Ustawienia')}
   else if(a==='grp'){ui.grp=b.dataset.g}
   else if(a==='eq'){ui.eq=b.dataset.e}
+  else if(a==='split'){ui.split=b.dataset.s}
   else if(a==='exInfo'){ui.exInfo=b.dataset.name;document.getElementById('sheet').innerHTML=exSheet();document.querySelector('.sheet .primary')?.focus();return}
   else if(a==='exClose'){ui.exInfo=null;document.getElementById('sheet').innerHTML='';return}
+  else if(a==='animOpen'){animOpen(b.dataset.name);return}
+  else if(a==='animClose'){animClose();return}
+  else if(a==='animPause'){anim.paused=!anim.paused;b.textContent=anim.paused?'Wznów':'Pauza';return}
+  else if(a==='animSpeed'){anim.speed=anim.speed===1?.5:1;b.textContent='Tempo: '+(anim.speed===1?'normalne':'wolne');return}
   else if(a==='aiVoice'){voiceToggle();return}
   else if(a==='aiOpen'){ui.ai.open=true}
   else if(a==='aiClose'){if(voice.on)voiceToggle();ui.ai={...ui.ai,open:false,result:null,error:''}}
@@ -813,7 +966,7 @@ window.addEventListener('hashchange',()=>{const t=tabFromHash();if(t&&t!==tab){t
 render();
 </script>
 <script>
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(ui.exInfo){ui.exInfo=null;document.getElementById('sheet').innerHTML=''}document.querySelector('.celebrate')?.remove()}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!document.getElementById('anim').hidden){animClose();return}if(ui.exInfo){ui.exInfo=null;document.getElementById('sheet').innerHTML=''}document.querySelector('.celebrate')?.remove()}});
 </script>
 <script>
 // instalacja jako aplikacja: service worker tylko na zwykłej stronie (np. GitHub Pages), nie w podglądzie claude.ai
