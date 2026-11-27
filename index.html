@@ -150,6 +150,18 @@ svg.chart text{fill:var(--muted);font-family:var(--f-num);font-size:10px}
 @media (max-width:340px){.hero{grid-template-columns:1fr}.hero .bodymap{display:none}}
 .eqhead{display:flex;align-items:center;gap:8px;padding:12px 0 4px;font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);border-top:1px solid var(--line)}
 .eqhead:first-child{border-top:0;padding-top:0}
+button.fold{width:100%;display:flex;align-items:center;justify-content:flex-start;background:none;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer;margin:0;border-radius:10px;-webkit-tap-highlight-color:transparent}
+button.ghead.fold{padding:4px 2px;font:inherit;text-transform:inherit;letter-spacing:inherit}
+.ghead .gname{flex:1;min-width:0}
+button.ghead.fold .gchip{font-family:var(--f-body);text-transform:none;letter-spacing:0}
+button.eqhead.fold{border-radius:0;border-top:1px solid var(--line);padding:12px 0 6px;font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+button.eqhead.fold:first-child{border-top:0;padding-top:2px}
+button.eqhead.fold>span:nth-child(2){flex:none}
+button.eqhead.fold .num{margin-left:auto}
+button.fold:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.chev{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s;color:var(--muted)}
+.chev.on{transform:rotate(90deg)}
+@media (prefers-reduced-motion:reduce){.chev{transition:none}}
 .eqhead span:nth-child(2){flex:1}
 .eqhead+.dbrow{border-top:0}
 .eqic{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
@@ -180,10 +192,11 @@ svg.chart text{fill:var(--muted);font-family:var(--f-num);font-size:10px}
 .lm-zsvg{width:100%;height:100%;min-height:220px;max-height:340px}
 .lm-tag{position:absolute;left:10px;top:8px;font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;font-weight:700;color:var(--muted)}
 .lm-full{display:flex;flex-direction:column;gap:4px;justify-content:center}
-.lm-full figure{margin:0;display:flex;flex-direction:column;align-items:center;opacity:.55;border-radius:10px;padding:2px 4px}
-.lm-full figure.on{opacity:1;background:var(--bg)}
+.lm-zwrap{display:grid}.lm-zoom[hidden]{display:none}
+.lm-fig{margin:0;display:flex;flex-direction:column;align-items:center;opacity:.55;border-radius:10px;padding:4px 6px;background:none;border:1px solid transparent;color:inherit;font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.lm-fig.on{opacity:1;background:var(--bg);border-color:var(--line)}
 .lm-full svg{height:104px;width:auto}
-.lm-full figcaption{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.lm-cap{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .lm-list{display:flex;flex-direction:column;gap:6px;font-size:.86rem}
 .lm-row{display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:baseline}
 .lm-key{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:.78rem}
@@ -301,7 +314,7 @@ const TABS=[
 // stare adresy (np. skróty z ekranu telefonu) prowadzą do nowych zakładek
 const OLD_TABS={trening:'trenuj',plan:'planuj',baza:'planuj',postepy:'wnioskuj',porady:'radz',notatki:'obserwuj'};
 function tabFromHash(){const h=location.hash.slice(1);if(h==='baza')ui.sub='cwiczenia';const t=OLD_TABS[h]||h;return TABS.some(x=>x[0]===t)?t:null}
-let ui={split:'akton',sub:'plany',planId:null,editPlan:null,confirmRmPlan:null,exInfo:null,ai:{open:false,desc:'',photo:null,photoUrl:'',busy:false,result:null,error:''},q:'',grp:'',eq:'',target:null,dayId:null,draft:null,ex:null,editDay:null,confirmClear:false};
+let ui={fold:{},split:'akton',sub:'plany',planId:null,editPlan:null,confirmRmPlan:null,exInfo:null,ai:{open:false,desc:'',photo:null,photoUrl:'',busy:false,result:null,error:''},q:'',grp:'',eq:'',target:null,dayId:null,draft:null,ex:null,editDay:null,confirmClear:false};
 
 let tab=tabFromHash()||'trenuj';
 if(location.hash&&location.hash.slice(1)!==tab){try{history.replaceState(null,'','#'+tab)}catch(e){}}
@@ -310,11 +323,7 @@ function renderTabs(){
 }
 function go(t){tab=t;try{history.replaceState(null,'','#'+t)}catch(e){location.hash=t}render();scrollTo(0,0)}
 
-function banner(){
-  if(!S.example)return'';
-  return `<div class="banner"><span>Widzisz <b>przykładowe dane</b>, żeby było widać, jak działa aplikacja.</span>
-  ${ui.confirmClear?`<span class="row"><button class="danger" data-act="clearAll">Tak, wyczyść</button><button class="ghost" data-act="cancelClear">Anuluj</button></span>`:`<button data-act="askClear">Zacznij od zera</button>`}</div>`;
-}
+function banner(){return''}
 
 /* ---------- baza ćwiczeń ---------- */
 let DB=[],DB_FLAT=[];
@@ -364,7 +373,16 @@ function dbResults(){
   const parts=g=>ui.split==='akton'&&SUBGROUPS[g.en]
     ? [...SUBGROUPS[g.en].map(([label,ids],si)=>({head:`<span class="actmini">${actonMini(ids)}</span><span>${label}</span>`,items:g.items.filter(i=>leadSub(i,g.en)===si)})),{head:'<span class="actmini"></span><span>Inne</span>',items:g.items.filter(i=>leadSub(i,g.en)<0)}]
     : EQUIP.map(([k,label])=>({head:`${eqIcon(k)}<span>${label}</span>`,items:g.items.filter(i=>i.eq===k)}));
-  return groups.map(g=>`<section class="stack"><div class="ghead">${bodyMap([g.en],60)}<h2>${esc(g.group)} <span class="en" style="font-family:var(--f-body);text-transform:none">${esc(g.en)}</span></h2><span class="gchip" style="--c:${GROUP_COLOR[g.en]}"><i></i>${g.items.length}</span></div><div class="card">${parts(g).filter(x=>x.items.length).map(x=>`<div class="eqhead">${x.head}<span class="muted num">${x.items.length}</span></div>${x.items.map(row).join('')}`).join('')}</div></section>`).join('');
+  // zwijanie: grupy domyślnie zwinięte, gdy nic nie filtruje; podgrupy domyślnie rozwinięte; szukanie rozwija wszystko
+  const auto=!!(q||ui.grp);
+  const isOpen=(key,def)=>q?true:(ui.fold[key]??(ui.grp&&key.startsWith('g:')?true:def));
+  const chev=o=>`<svg class="chev${o?' on':''}" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>`;
+  const allOpen=groups.every(g=>isOpen('g:'+g.en,false));
+  const tools=auto?'':`<div class="row" style="justify-content:flex-end"><button class="ghost small" data-act="foldAll" data-v="${allOpen?'0':'1'}">${allOpen?'Zwiń wszystko':'Rozwiń wszystko'}</button></div>`;
+  return tools+groups.map(g=>{const gk='g:'+g.en,go=isOpen(gk,false);
+    const body=parts(g).filter(x=>x.items.length).map((x,si)=>{const sk='s:'+ui.split+':'+g.en+':'+si,so=isOpen(sk,true);
+      return `<button class="eqhead fold" data-act="fold" data-k="${esc(sk)}" data-d="1" aria-expanded="${so}">${chev(so)}${x.head}<span class="muted num">${x.items.length}</span></button>${so?x.items.map(row).join(''):''}`}).join('');
+    return `<section class="stack"><h2><button class="ghead fold" data-act="fold" data-k="${esc(gk)}" data-d="0" aria-expanded="${go}">${bodyMap([g.en],60)}<span class="gname">${esc(g.group)} <span class="en" style="font-family:var(--f-body);text-transform:none">${esc(g.en)}</span></span><span class="gchip" style="--c:${GROUP_COLOR[g.en]}"><i></i>${g.items.length}</span>${chev(go)}</button></h2>${go?`<div class="card">${body}</div>`:''}</section>`}).join('');
 }
 function viewBaza(){
   if(ui.target&&!findDay(ui.target))ui.target=null;
@@ -407,22 +425,25 @@ function loadMap(name){
   const o={base:'var(--body)',skin:'var(--skin)',line:'var(--surface)',sw:.7};
   const score=v=>M[v].reduce((a,[id])=>a+(load[id]||0)**2,0);
   const main=score('back')>score('front')?'back':'front';
-  // zbliżenie: prostokąt obejmujący mięśnie główne i pomocnicze (obie strony ciała)
-  let b=[1e9,1e9,-1e9,-1e9];
-  M[main].forEach(([id,d])=>{if((load[id]||0)>=2){const[x0,y0,x1,y1]=pathBox(d);b=[Math.min(b[0],x0,100-x1),Math.min(b[1],y0),Math.max(b[2],x1,100-x0),Math.max(b[3],y1)]}});
-  if(b[0]>b[2])b=[0,0,100,196];
-  let w=b[2]-b[0]+18,h=b[3]-b[1]+18,cx=(b[0]+b[2])/2,cy=(b[1]+b[3])/2;
-  w=Math.max(w,36);h=Math.max(h,30);if(w/h<1.2)w=h*1.2;else h=w/1.2;
-  // numerowane znaczniki na pracujących aktonach (lewa strona sylwetki), te same numery na liście
+  // numery wspólne dla obu widoków; znacznik tam, gdzie akton widać
   const order=Object.keys(load).sort((a,c)=>load[c]-load[a]);const num={};let k=0;
-  order.forEach(id=>{const pth=M[main].find(x=>x[0]===id);if(pth)num[id]={n:++k,box:pathBox(pth[1])}});
-  const r=Math.max(w*.034,1.9);
-  const marks=Object.entries(num).map(([id,{n,box}])=>{const x=(box[0]+box[2])/2,y=(box[1]+box[3])/2;return `<g class="lm-mark"><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(2)}" fill="var(--ink)" stroke="#fff" stroke-width="1.4" vector-effect="non-scaling-stroke"/><text x="${x.toFixed(1)}" y="${(y+r*.38).toFixed(2)}" font-size="${(r*1.1).toFixed(2)}" text-anchor="middle" fill="var(--surface)" font-weight="700">${n}</text></g>`}).join('');
-  const zoom=`<svg viewBox="${(cx-w/2).toFixed(1)} ${(cy-h/2).toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)}" class="lm-zsvg" role="img" aria-label="Zbliżenie na pracujące mięśnie">${heatView(main,load,{...o,sw:1.6})}${marks}</svg>`;
-  const full=v=>`<figure class="${v===main?'on':''}"><svg viewBox="0 0 100 196" height="170" width="87" aria-hidden="true">${heatView(v,load,o)}</svg><figcaption>${v==='front'?'Przód':'Tył'}</figcaption></figure>`;
-  const list=[3,2,1].map(k=>{const ids=Object.keys(load).filter(id=>load[id]===k);return ids.length?`<div class="lm-row"><span class="lm-key"><i style="background:${HEAT[k]}"></i>${HEAT_L[k]}</span><span class="lm-names">${ids.map(id=>`<span>${num[id]?`<b class="lm-n">${num[id].n}</b>`:''}${esc(M.muscles[id][0])}</span>`).join('')}</span></div>`:''}).join('');
+  order.forEach(id=>{if(M.front.some(x=>x[0]===id)||M.back.some(x=>x[0]===id))num[id]=++k});
+  const zoomFor=v=>{
+    // zbliżenie: prostokąt obejmujący najmocniej pracujące mięśnie widoku (obie strony ciała)
+    let b=[1e9,1e9,-1e9,-1e9];
+    const top=Math.max(0,...M[v].map(([id])=>load[id]||0)),lim=Math.min(2,top);
+    if(top)M[v].forEach(([id,d])=>{if((load[id]||0)>=lim){const[x0,y0,x1,y1]=pathBox(d);b=[Math.min(b[0],x0,100-x1),Math.min(b[1],y0),Math.max(b[2],x1,100-x0),Math.max(b[3],y1)]}});
+    if(b[0]>b[2])b=[0,0,100,196];
+    let w=b[2]-b[0]+18,h=b[3]-b[1]+18,cx=(b[0]+b[2])/2,cy=(b[1]+b[3])/2;
+    w=Math.max(w,36);h=Math.max(h,30);if(w/h<1.2)w=h*1.2;else h=w/1.2;
+    const r=Math.max(w*.034,1.9);
+    const marks=order.map(id=>{const pth=M[v].find(x=>x[0]===id);if(!pth)return'';const box=pathBox(pth[1]),n=num[id],x=(box[0]+box[2])/2,y=(box[1]+box[3])/2;return `<g class="lm-mark"><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(2)}" fill="var(--ink)" stroke="#fff" stroke-width="1.4" vector-effect="non-scaling-stroke"/><text x="${x.toFixed(1)}" y="${(y+r*.38).toFixed(2)}" font-size="${(r*1.1).toFixed(2)}" text-anchor="middle" fill="var(--surface)" font-weight="700">${n}</text></g>`}).join('');
+    return `<div class="lm-zoom" data-v="${v}"${v===main?'':' hidden'}><svg viewBox="${(cx-w/2).toFixed(1)} ${(cy-h/2).toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)}" class="lm-zsvg" role="img" aria-label="Zbliżenie na pracujące mięśnie, ${v==='front'?'przód':'tył'}">${heatView(v,load,{...o,sw:1.6})}${marks}</svg><span class="lm-tag">Zbliżenie · ${v==='front'?'przód':'tył'}</span></div>`;
+  };
+  const full=v=>`<button type="button" class="lm-fig${v===main?' on':''}" data-act="lmView" data-v="${v}" aria-pressed="${v===main}" aria-label="Pokaż zbliżenie: ${v==='front'?'przód':'tył'}"><svg viewBox="0 0 100 196" height="170" width="87" aria-hidden="true">${heatView(v,load,{...o,notitle:true})}</svg><span class="lm-cap">${v==='front'?'Przód':'Tył'}</span></button>`;
+  const list=[3,2,1].map(k=>{const ids=Object.keys(load).filter(id=>load[id]===k);return ids.length?`<div class="lm-row"><span class="lm-key"><i style="background:${HEAT[k]}"></i>${HEAT_L[k]}</span><span class="lm-names">${ids.map(id=>`<span>${num[id]?`<b class="lm-n">${num[id]}</b>`:''}${esc(M.muscles[id][0])}</span>`).join('')}</span></div>`:''}).join('');
   return `<section class="stack" style="gap:8px"><h3>Mapa obciążenia</h3>
-  <div class="lm"><div class="lm-zoom">${zoom}<span class="lm-tag">Zbliżenie · ${main==='front'?'przód':'tył'}</span></div><div class="lm-full">${full('front')}${full('back')}</div></div>
+  <div class="lm"><div class="lm-zwrap">${zoomFor('front')}${zoomFor('back')}</div><div class="lm-full">${full('front')}${full('back')}</div></div>
   <div class="lm-list">${list}</div></section>`;
 }
 /* ---------- animacja ruchu na pełnym ekranie ---------- */
@@ -759,7 +780,9 @@ function viewUstawienia(){
   ${aiSettings()}
   <section class="stack"><h2>Kopia zapasowa</h2><div class="card"><p class="muted" style="margin:0">Dane są zapisane tylko na tym urządzeniu. Skopiuj je od czasu do czasu, żeby ich nie stracić, albo żeby przenieść je na telefon.</p>
   <div class="row"><button data-act="copyBackup">Kopiuj dane</button></div>
-  <textarea id="restore" placeholder="Wklej tu skopiowane dane, żeby je przywrócić"></textarea><div><button data-act="restore">Przywróć z wklejonych</button></div></div></section>`;
+  <textarea id="restore" placeholder="Wklej tu skopiowane dane, żeby je przywrócić"></textarea><div><button data-act="restore">Przywróć z wklejonych</button></div></div></section>
+  <section class="stack"><h2>Historia</h2><div class="card"><p class="muted" style="margin:0">${S.example?'Treningi, pomiary i wpisy są teraz przykładowe. ':''}Wyczyszczenie usuwa treningi, pomiary i wpisy. Plany i ustawienia zostają.</p>
+  <div class="row">${ui.confirmClear?`<button class="danger" data-act="clearAll">Tak, wyczyść</button><button class="ghost" data-act="cancelClear">Anuluj</button>`:`<button data-act="askClear">Zacznij od zera</button>`}</div></div></section>`;
 }
 
 /* ---------- instalacja na telefonie ---------- */
@@ -887,8 +910,10 @@ document.addEventListener('click',e=>{
   else if(a==='grp'){ui.grp=b.dataset.g}
   else if(a==='eq'){ui.eq=b.dataset.e}
   else if(a==='split'){ui.split=b.dataset.s}
+  else if(a==='fold'||a==='foldAll'){if(a==='fold'){const k=b.dataset.k;ui.fold[k]=b.getAttribute('aria-expanded')!=='true'}else{const v=b.dataset.v==='1';DB.forEach(g=>ui.fold['g:'+g.en]=v)}const r=document.getElementById('db-results');if(r)r.innerHTML=dbResults();return}
   else if(a==='exInfo'){ui.exInfo=b.dataset.name;document.getElementById('sheet').innerHTML=exSheet();document.querySelector('.sheet .primary')?.focus();return}
   else if(a==='exClose'){ui.exInfo=null;document.getElementById('sheet').innerHTML='';return}
+  else if(a==='lmView'){const lm=b.closest('.lm');lm.querySelectorAll('.lm-zoom').forEach(z=>z.hidden=z.dataset.v!==b.dataset.v);lm.querySelectorAll('.lm-fig').forEach(f=>{const on=f===b;f.classList.toggle('on',on);f.setAttribute('aria-pressed',on)});return}
   else if(a==='animOpen'){animOpen(b.dataset.name);return}
   else if(a==='animClose'){animClose();return}
   else if(a==='animPause'){anim.paused=!anim.paused;b.textContent=anim.paused?'Wznów':'Pauza';return}
