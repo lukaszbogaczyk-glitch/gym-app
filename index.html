@@ -276,6 +276,8 @@ button[disabled]{opacity:.6;cursor:progress}
 .wz-ainote{border-color:var(--accent)}
 .wz-nav{position:sticky;bottom:calc(72px + env(safe-area-inset-bottom,0px));background:var(--bg);padding:8px 0}
 .xl-sum ul{margin:6px 0;padding-left:18px}.xl-sum li{margin:2px 0}.xl-err{color:var(--danger,#c62828)}
+.hero{position:relative}.hero .ver{position:absolute;bottom:12px;right:14px;color:var(--hero-muted);border-color:currentColor;opacity:.8}
+.ver{align-self:flex-start;font-size:.7rem;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 8px;white-space:nowrap}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-weight:600;z-index:9}
 @media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}}
 </style>
@@ -941,12 +943,15 @@ function viewNotatki(){
 }
 
 let lastView='';
+// wersja aplikacji: zmieniaj przy każdym scaleniu (numer PR + data), żeby na telefonie było widać, czy jest najnowsza
+const APP_VERSION='v18 · 27.11.2026';
 function render(){
   renderTabs();
   const app=document.getElementById('app');const key=tab+(tab==='planuj'?ui.sub:'')+(ui.draft?'-d':'');
   app.classList.toggle('enter',key!==lastView);lastView=key;
   document.getElementById('sheet').innerHTML=exSheet();
   app.innerHTML=({planuj:viewPlanuj,trenuj:viewTrening,obserwuj:viewNotatki,wnioskuj:viewWnioskuj,radz:viewPorady}[tab])();
+  const top=!ui.draft&&app.querySelector('header.top,.hero');if(top&&!top.querySelector('.ver'))top.insertAdjacentHTML('beforeend',`<span class="ver num" title="Wersja aplikacji">${APP_VERSION}</span>`);
 }
 
 function leaveExample(){if(S.example){S.example=false}}
