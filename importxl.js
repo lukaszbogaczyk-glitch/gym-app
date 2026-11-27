@@ -156,7 +156,7 @@ async function exportXlsx(){
 window.xlSection=function(){const x=ui.xl||{};const s=x.sum;
   return `<section class="stack"><h2>Dziennik z Excela</h2><div class="card stack">
   <p class="muted" style="margin:0">Wczytaj swój dziennik treningowy (.xlsx): plan, wszystkie serie z Logu, wagę i pomiary. Ponowne wczytanie nowszej wersji pliku podmienia poprzedni import, bez duplikatów.</p>
-  ${x.busy?'<p class="muted" style="margin:0">Czytam plik…</p>':''}${x.err?`<p class="xl-err" style="margin:0">${esc(x.err)}</p>`:''}
+  ${x.busy?`<p class="muted" style="margin:0">Czytam plik ${esc(x.file||'')}… Przy pierwszym imporcie pobieram czytnik Excela, to może potrwać kilka sekund.</p>`:''}${x.err?`<p class="xl-err" style="margin:0">${esc(x.err)}</p>`:''}
   ${s?`<div class="xl-sum"><b>${esc(x.file)}</b><ul>
     <li>Plan: <b>${esc(s.plan||'bez nazwy')}</b>, ${s.days} ${s.days===1?'dzień':'dni'}, ${s.ex} ${pl(s.ex,'ćwiczenie','ćwiczenia','ćwiczeń')}${s.dayNames.length?` (${esc(s.dayNames.join(', '))})`:''}</li>
     <li>Historia: <b>${s.sess} ${pl(s.sess,'trening','treningi','treningów')}</b>, ${s.sets} ${pl(s.sets,'seria','serie','serii')}${s.warm?` (w tym ${s.warm} ${pl(s.warm,'rozgrzewkowa','rozgrzewkowe','rozgrzewkowych')})`:''}${s.from?`, od ${fmtDate(s.from)} do ${fmtDate(s.to)}`:''}</li>
@@ -164,14 +164,22 @@ window.xlSection=function(){const x=ui.xl||{};const s=x.sum;
     <li>Waga: ${s.bw} ${s.bw===1?'pomiar':'pomiary'}, notatki: ${s.notes} (pomiary ciała, zasady bloku)</li></ul>
     ${S.example?'<p class="muted" style="margin:0">Przykładowe dane zostaną usunięte.</p>':S.sessions.some(z=>z.src==='xlsx')?'<p class="muted" style="margin:0">Poprzedni import z Excela zostanie podmieniony. Treningi zapisane w aplikacji zostają.</p>':''}
     <div class="row"><button class="primary" data-act="xlApply">Importuj</button><button class="ghost" data-act="xlCancel">Anuluj</button></div></div>`
-  :`<div class="row"><button class="primary" data-act="xlPick">Wybierz plik .xlsx</button><input type="file" id="xl-file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>${S.sessions.length?'<button data-act="xlExport">Pobierz dziennik .xlsx</button>':''}</div>`}
+  :`<div class="row"><button class="primary" data-act="xlPick">Wybierz plik .xlsx</button>${S.sessions.length?'<button data-act="xlExport">Pobierz dziennik .xlsx</button>':''}</div>`}
   </div></section>`};
 
-document.addEventListener('change',async e=>{if(e.target.id!=='xl-file'||!e.target.files[0])return;const f=e.target.files[0];ui.xl={busy:true,file:f.name};render();
+// pole wyboru pliku żyje poza ekranem aplikacji: render() po kliknięciu nie może go podmienić, bo wtedy wybór pliku ginie
+let picker=null;
+function pickFile(){
+  if(!picker){picker=document.createElement('input');picker.type='file';picker.id='xl-file';picker.accept='.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel';
+    picker.style.cssText='position:fixed;left:-9999px;width:1px;height:1px;opacity:0';document.body.appendChild(picker);
+    picker.addEventListener('change',()=>{const f=picker.files[0];picker.value='';if(f)readFile(f)})}
+  picker.click();
+}
+async function readFile(f){ui.xl={busy:true,file:f.name};render();
   try{const X=await lib();const wb=X.read(await f.arrayBuffer(),{cellDates:true});const data=parse(wb);if(!data.sessions.length&&!data.days.length)throw new Error('Nie znalazłem w pliku arkuszy „Plan” ani „Log”.');ui.xl={file:f.name,data,sum:summary(data)}}
-  catch(err){ui.xl={err:err?.message||'Nie udało się odczytać pliku.'}}render()});
+  catch(err){ui.xl={err:err?.message||'Nie udało się odczytać pliku.'}}render()}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
-  if(a==='xlPick'){document.getElementById('xl-file')?.click();return}
+  if(a==='xlPick'){pickFile();return}
   if(a==='xlCancel')ui.xl=null;
   else if(a==='xlApply'&&ui.xl?.data){apply(ui.xl.data);const s=ui.xl.sum;ui.xl=null;ui.planId=null;toast(`Zaimportowano plan i ${s.sess} ${pl(s.sess,'trening','treningi','treningów')}`)}
   else if(a==='xlExport'){exportXlsx().catch(err=>toast(err?.message||'Nie udało się zapisać pliku'))}},true);
