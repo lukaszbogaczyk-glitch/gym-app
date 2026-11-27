@@ -88,10 +88,14 @@ function build(){
       }
     });
   }
-  days.forEach(d=>d.ex.sort((a,b)=>b.sc-a.sc));
+  days.forEach(d=>sortDay(d.ex));
   w.plan={split,days:days.map(d=>({name:d.name,ex:d.ex}))};
   if(!w.name)w.name=`${GOALS[w.goal].l} · ${SPLITS[split].l.split(' (')[0]} ${w.days}×`;
 }
+// kolejność w dniu: partiami, od dużych do małych (np. Push: klatka, barki, triceps), w partii od ćwiczeń wielostawowych
+const ORDER=['Chest','Back','Quads','Hamstrings & Glutes','Shoulders','Triceps','Biceps','Forearms','Calves','Core','Full Body & Conditioning'];
+const gOf=e=>findEx(e.name)?.groupEn||e.group;
+function sortDay(ex){const sc=e=>e.sc??score(findEx(e.name)||{pl:e.name},W().goal);return ex.sort((a,b)=>ORDER.indexOf(gOf(a))-ORDER.indexOf(gOf(b))||sc(b)-sc(a))}
 function alternatives(name,groupEn){
   const it=findEx(name),sub=it?leadSub(it,groupEn):-1,inPlan=new Set(W().plan.days.flatMap(d=>d.ex.map(e=>e.name)));
   return allowed().filter(i=>i.groupEn===groupEn&&!inPlan.has(i.pl)).sort((a,b)=>(leadSub(b,groupEn)===sub)-(leadSub(a,groupEn)===sub)||score(b,W().goal)-score(a,W().goal)).slice(0,6);
@@ -136,22 +140,26 @@ function stepBody(){
   const mode=typeof aiMode==='function'?aiMode():null;
   return `<h3>Twój plan</h3><p class="muted wz-p">${SPLITS[w.plan.split].l}, ${w.days}× w tygodniu, ok. ${w.min} min. Zakres ${g.range} powtórzeń, przerwy ok. ${g.rest>=120?Math.round(g.rest/60)+' min':g.rest+' s'}.</p>
   ${(()=>{const av=allowed(),miss=Object.keys(w.pr).filter(en=>w.pr[en]>0&&!av.some(i=>i.groupEn===en));return miss.length?`<div class="card wz-ainote"><b>Brakuje ćwiczeń</b><p style="margin:4px 0 0">Przy wybranym sprzęcie i ograniczeniach nie ma ćwiczeń dla: ${miss.map(en=>esc(DB.find(x=>x.en===en)?.group||en)).join(', ')}. Odblokuj sprzęt w kroku 5 albo zdejmij ograniczenie w kroku 6.</p></div>`:''})()}
+  <div class="card wz-src${w.busy?' busy':''}">${w.busy?`<span class="wz-spin" aria-hidden="true"></span><div><b>${w.busy==='create'?'AI układa plan na podstawie Twoich odpowiedzi…':'AI dopracowuje plan…'}</b><small>Poniżej szkic ułożony automatycznie. Zwykle trwa to kilkanaście sekund.</small></div>`
+    :`<div><b>${w.plan.src==='ai'?'Plan ułożony przez AI':'Plan ułożony automatycznie'}</b><small>${w.plan.src==='ai'?'Na podstawie Twoich odpowiedzi, tylko z dozwolonych ćwiczeń z bazy.':mode?'Możesz poprosić AI o ułożenie planu od podstaw.':'Dodaj klucz API w Ustawieniach, żeby układać plan z AI.'}</small></div>
+    <div class="row">${mode?`<button class="${w.plan.src==='ai'?'':'primary'}" data-act="wzAICreate">${w.plan.src==='ai'?'Ułóż ponownie z AI':'Ułóż z AI'}</button>`:''}${w.plan.src==='ai'?'<button class="ghost" data-act="wzRebuild">Ułóż bez AI</button>':''}</div>`}</div>
+  ${w.err?`<p class="aierr">${esc(w.err)}</p>`:''}
   ${w.aiNote?`<div class="card wz-ainote"><b>Uwagi AI</b><p style="margin:4px 0 0">${esc(w.aiNote)}</p></div>`:''}
   <div class="card"><div class="eyebrow">Serie na partię w tygodniu</div><div class="wz-bars">${Object.entries(ws).sort((a,b)=>b[1]-a[1]).map(([en,n])=>{const gr=DB.find(x=>x.en===en);return `<div class="wz-bar"><span>${esc(gr?gr.group:en)}</span><i style="--w:${(n/mx*100).toFixed(0)}%;--c:${GROUP_COLOR[en]||'var(--accent)'}"></i><b class="num">${n}</b></div>`}).join('')}</div></div>
   ${w.plan.days.map((d,di)=>`<div class="card"><div class="row between"><h3>${esc(d.name)}</h3><span class="muted num">ok. ${minutes(d)} min</span></div>
-    ${d.ex.map((e,ei)=>{const sw=w.swap&&w.swap[0]===di&&w.swap[1]===ei;return `<div class="ex"><div><button class="exlink" data-act="exInfo" data-name="${esc(e.name)}">${esc(e.name)}</button><div class="en">${esc(DB.find(x=>x.en===(findEx(e.name)?.groupEn||e.group))?.group||'')}</div></div>
+    ${d.ex.map((e,ei)=>{const sw=w.swap&&w.swap[0]===di&&w.swap[1]===ei;const gh=ei===0||gOf(d.ex[ei-1])!==gOf(e);return `${gh?`<div class="wz-gh"><i class="wz-dot" style="background:${GROUP_COLOR[gOf(e)]||'var(--muted)'}"></i>${esc(DB.find(x=>x.en===gOf(e))?.group||'')}</div>`:''}<div class="ex"><div><button class="exlink" data-act="exInfo" data-name="${esc(e.name)}">${esc(e.name)}</button><div class="en">${esc(DB.find(x=>x.en===(findEx(e.name)?.groupEn||e.group))?.group||'')}</div></div>
       <div class="row" style="flex-wrap:nowrap"><span class="num muted">${e.sets}×${e.reps}</span><button class="ghost" data-act="wzSwap" data-d="${di}" data-e="${ei}" aria-expanded="${sw}">Zamień</button><button class="ghost" data-act="wzRmEx" data-d="${di}" data-e="${ei}" aria-label="Usuń ${esc(e.name)}">✕</button></div></div>
       ${sw?`<div class="wz-swap"><div class="eyebrow">Sugerowane zamienniki</div><div class="chips">${alternatives(e.name,findEx(e.name)?.groupEn||e.group).map(a=>`<button data-act="wzPick" data-v="${esc(a.pl)}">${eqIcon(a.eq)}${esc(a.pl)}</button>`).join('')||'<span class="muted">Brak zamienników przy wybranym sprzęcie.</span>'}</div>
         <form class="row" data-form="wzPickOwn"><input id="wz-own" list="ex-list-wz7" placeholder="Albo wybierz dowolne z bazy" style="flex:1 1 180px"><button>Wstaw</button></form><datalist id="ex-list-wz7">${DB_FLAT.map(i=>`<option value="${esc(i.pl)}">${esc(i.group)}</option>`).join('')}</datalist></div>`:''}`}).join('')||'<p class="muted">Brak ćwiczeń dla tego dnia przy wybranych ustawieniach.</p>'}
   </div>`).join('')}
   <div class="card stack"><h3>Dopracuj z AI</h3><p class="muted wz-p">AI może poprawić dobór ćwiczeń, kolejność i objętość. Opcjonalnie dopisz życzenia.</p>
     <textarea id="wz-wish" placeholder="Np. więcej ćwiczeń na górę klatki, bez skłonów, krótsze treningi w piątek">${esc(w.wish)}</textarea>
-    ${mode?`<div class="row"><button class="primary" data-act="wzAI" ${w.busy?'disabled':''}>${w.busy?'AI układa plan…':'Dopracuj z AI'}</button><span class="muted" style="font-size:.78rem">${mode==='claude'?'Przez Twoje konto Claude':'Przez Twój klucz API'}</span></div>`
+    ${mode?`<div class="row"><button class="primary" data-act="wzAI" ${w.busy?'disabled':''}>${w.busy?'AI pracuje…':'Dopracuj z AI'}</button><span class="muted" style="font-size:.78rem">${mode==='claude'?'Przez Twoje konto Claude':'Przez Twój klucz API'}</span></div>`
       :`<p class="muted wz-p">AI działa z Twoim kluczem API. Dodaj go w Planuj, w części Ustawienia.</p>`}
-    ${w.err?`<p class="aierr">${esc(w.err)}</p>`:''}</div>
+</div>
   <div class="card stack"><label class="eyebrow" for="wz-name">Nazwa planu</label><input id="wz-name" value="${esc(w.name)}">
     <label class="row" style="gap:8px"><input type="checkbox" id="wz-active" ${w.active?'checked':''} style="width:auto"> Trenuj od razu tym planem</label>
-    <div class="row"><button class="primary" data-act="wzSave">Zapisz plan</button><button class="ghost" data-act="wzRebuild">Ułóż od nowa</button></div></div>`;
+    <div class="row"><button class="primary" data-act="wzSave">Zapisz plan</button></div></div>`;
 }
 window.viewKreator=function(){
   const w=W();
@@ -165,19 +173,23 @@ window.viewKreator=function(){
 };
 
 /* ---------- AI ---------- */
-async function aiPlan(){
-  const w=W(),names=allowed().map(i=>`${i.pl} [${i.groupEn}]`).join('; ');
-  const prompt=`Jesteś doświadczonym trenerem personalnym. Dopracuj plan treningowy na siłownię. Odpowiadasz po polsku.
+async function aiPlan(mode){
+  const w=W(),names=allowed().map(i=>`${i.pl} [${i.groupEn}]`).join('; '),create=mode==='create';
+  const ws=weeklySets();
+  const prompt=`Jesteś doświadczonym trenerem personalnym. ${create?'Ułóż od podstaw tygodniowy plan treningowy na siłownię na podstawie odpowiedzi z kreatora.':'Dopracuj plan treningowy na siłownię.'} Odpowiadasz po polsku.
 Cel: ${GOALS[w.goal].l} (${GOALS[w.goal].range} powtórzeń). Poziom: ${LEVELS[w.level].l}. Treningi: ${w.days} w tygodniu po ok. ${w.min} min. Podział: ${SPLITS[w.plan.split].l}.
 Priorytety partii (suma 100): ${Object.entries(w.pr).map(([k,v])=>k+' '+v).join(', ')}.
 Wykluczony sprzęt: ${w.noEq.join(', ')||'brak'}. Kontuzje stawów: ${INJ.filter(x=>w.inj.includes(x[0])).map(x=>x[1]).join(', ')||'brak'}. Mięśnie do odciążenia lub omijania: ${MUSC.filter(m=>w.mus?.[m[0]]).map(m=>m[1]+' ('+MUS_L[w.mus[m[0]]].toLowerCase()+')').join(', ')||'brak'}. Wykluczone ćwiczenia: ${w.noEx.join(', ')||'brak'}.
 ${w.wish?`Życzenia użytkownika: "${w.wish.replace(/"/g,"'")}"`:''}
-Obecny plan (JSON): ${JSON.stringify(w.plan.days.map(d=>({name:d.name,exercises:d.ex.map(e=>({name:e.name,sets:e.sets,reps:e.reps}))})))}
+${create?`Dni treningowe (zachowaj kolejność i nazwy): ${w.plan.days.map(d=>d.name).join(', ')}.
+Docelowe serie na partię w tygodniu (wyliczone z czasu treningu i priorytetów, możesz lekko skorygować): ${Object.entries(ws).map(([k,v])=>k+' '+v).join(', ')}.
+Mieść się w ok. ${w.min} min na trening przy przerwach ok. ${GOALS[w.goal].rest} s. Na początku dnia ćwiczenia wielostawowe, potem izolowane. Unikaj powtarzania tych samych ćwiczeń w różnych dniach, jeśli jest wybór.
+Szkic do porównania (JSON): `:'Obecny plan (JSON): '}${JSON.stringify(w.plan.days.map(d=>({name:d.name,exercises:d.ex.map(e=>({name:e.name,sets:e.sets,reps:e.reps}))})))}
 Używaj WYŁĄCZNIE ćwiczeń z tej listy, nazwy przepisuj dokładnie: ${names}.
-Zachowaj liczbę dni treningowych. Odpowiedz WYŁĄCZNIE obiektem JSON w formacie:
-{"days":[{"name":"nazwa dnia","exercises":[{"name":"nazwa z listy","sets":3,"reps":10}]}],"note":"2–3 zdania po polsku: co zmieniłeś i dlaczego"}`;
+Zachowaj liczbę dni treningowych. W każdym dniu grupuj ćwiczenia partiami, duże partie przed małymi (np. klatka, potem barki, potem triceps). Odpowiedz WYŁĄCZNIE obiektem JSON w formacie:
+{"days":[{"name":"nazwa dnia","exercises":[{"name":"nazwa z listy","sets":3,"reps":10}]}],"note":"2–3 zdania po polsku: ${create?'jak ułożyłeś plan i dlaczego':'co zmieniłeś i dlaczego'}"}`;
   let out;
-  if(typeof sampleApi!=='undefined'&&sampleApi)out=await sampleApi.json(prompt,{});
+  if(typeof sampleApi!=='undefined'&&sampleApi)out=await sampleApi.json(prompt,{modelTier:'complex',cache:false});
   else{
     if(!S.ai?.key)throw new Error('Brak klucza API. Wpisz go w ustawieniach AI.');
     const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':S.ai.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
@@ -190,9 +202,13 @@ Zachowaj liczbę dni treningowych. Odpowiedz WYŁĄCZNIE obiektem JSON w formaci
   const ok=new Map(allowed().map(i=>[norm(i.pl),i]));let dropped=0;
   const days=out.days.map(d=>({name:String(d.name||'Dzień').slice(0,40),ex:(d.exercises||[]).map(e=>{const it=ok.get(norm(e.name));if(!it){dropped++;return null}
     return{name:it.pl,group:it.groupEn,sets:Math.max(1,Math.min(8,+e.sets||3)),reps:Math.max(1,Math.min(50,+e.reps||10)),rest:GOALS[w.goal].rest,sc:0}}).filter(Boolean)}));
-  w.plan={split:w.plan.split,days};w.aiNote=String(out.note||'')+(dropped?` (Pominięto ${dropped} ćwiczeń spoza bazy lub wykluczonych.)`:'');
+  days.forEach(d=>sortDay(d.ex));w.plan={split:w.plan.split,days,src:'ai'};w.aiNote=String(out.note||'')+(dropped?` (Pominięto ${dropped} ćwiczeń spoza bazy lub wykluczonych.)`:'');
 }
 
+const aiOn=()=>typeof aiMode==='function'&&!!aiMode();
+function runAI(mode){const w=W();if(!w||w.busy)return;w.busy=mode;w.err='';
+  if(mode==='create'){w.plan=null;build()}
+  aiPlan(mode).catch(err=>{w.err=(mode==='create'?'Nie udało się ułożyć planu z AI, pokazuję plan ułożony automatycznie. ':'')+(err?.message||'Nie udało się połączyć z AI.')}).finally(()=>{w.busy=false;if(ui.wiz===w)render()})}
 /* ---------- zdarzenia ---------- */
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
@@ -201,7 +217,8 @@ document.addEventListener('click',e=>{
   const w=W(),v=b.dataset.v;
   const dirty=()=>{w.plan=null;w.swap=null;w.aiNote=''};
   if(a==='wzClose'){ui.wiz=null}
-  else if(a==='wzGo'){const n=+v;if(n>=1&&n<=7){if(n===7&&w.step!==7&&!w.plan)build();w.step=n;scrollTo(0,0)}}
+  else if(a==='wzGo'){const n=+v;if(n>=1&&n<=7){const fresh7=n===7&&!w.plan;if(n===7&&!w.plan)build();w.step=n;scrollTo(0,0);if(fresh7&&aiOn())runAI('create')}}
+  else if(a==='wzAICreate'){runAI('create')}
   else if(a==='wzGoal'){w.goal=v;dirty()}
   else if(a==='wzLevel'){w.level=v;dirty()}
   else if(a==='wzGroup'){toggleGroup(v);dirty()}
@@ -216,12 +233,11 @@ document.addEventListener('click',e=>{
   else if(a==='wzInj'){w.inj=w.inj.includes(v)?w.inj.filter(x=>x!==v):[...w.inj,v];dirty()}
   else if(a==='wzRmNoEx'){w.noEx=w.noEx.filter(x=>x!==v);dirty()}
   else if(a==='wzSwap'){const k=[+b.dataset.d,+b.dataset.e];w.swap=w.swap&&w.swap[0]===k[0]&&w.swap[1]===k[1]?null:k}
-  else if(a==='wzPick'){const [di,ei]=w.swap||[];const ex=w.plan.days[di]?.ex[ei];const it=findEx(v);if(ex&&it){ex.name=it.pl;ex.group=it.groupEn}w.swap=null}
+  else if(a==='wzPick'){const [di,ei]=w.swap||[];const ex=w.plan.days[di]?.ex[ei];const it=findEx(v);if(ex&&it){ex.name=it.pl;ex.group=it.groupEn;ex.sc=undefined;sortDay(w.plan.days[di].ex)}w.swap=null}
   else if(a==='wzRmEx'){w.plan.days[+b.dataset.d].ex.splice(+b.dataset.e,1);w.swap=null}
-  else if(a==='wzRebuild'){w.plan=null;w.aiNote='';build()}
-  else if(a==='wzAI'){if(w.busy)return;w.busy=true;w.err='';
-    aiPlan().catch(err=>{w.err=err?.message||'Nie udało się połączyć z AI.'}).finally(()=>{w.busy=false;render()})}
-  else if(a==='wzSave'){
+  else if(a==='wzRebuild'){if(w.busy)return;w.plan=null;w.aiNote='';w.err='';build()}
+  else if(a==='wzAI'){runAI('refine')}
+  else if(a==='wzSave'){if(w.busy){toast('Poczekaj, aż AI skończy układać plan');return}
     const p={id:uid(),name:(w.name||'Mój plan').trim(),days:w.plan.days.filter(d=>d.ex.length).map(d=>({id:uid(),name:d.name,exercises:d.ex.map(x=>({id:uid(),name:x.name,sets:x.sets,reps:x.reps,rest:x.rest}))}))};
     if(!p.days.length){toast('Plan nie ma ćwiczeń');return}
     S.plans.push(p);if(w.active||!S.activePlan)S.activePlan=p.id;save();ui.wiz=null;ui.planId=p.id;scrollTo(0,0);toast('Zapisano plan: '+p.name)}
@@ -240,7 +256,7 @@ document.addEventListener('change',e=>{if(ui.wiz&&e.target.id==='wz-active')ui.w
 document.addEventListener('submit',e=>{
   const f=e.target;if(!ui.wiz||!f.dataset.form?.startsWith('wz'))return;e.preventDefault();e.stopImmediatePropagation();const w=W();
   if(f.dataset.form==='wzNoEx'){const it=findEx(document.getElementById('wz-noex').value);if(!it){toast('Nie ma takiego ćwiczenia w bazie');return}if(!w.noEx.includes(it.pl))w.noEx.push(it.pl);w.plan=null}
-  if(f.dataset.form==='wzPickOwn'){const it=findEx(document.getElementById('wz-own').value);if(!it){toast('Nie ma takiego ćwiczenia w bazie');return}const [di,ei]=w.swap||[];const ex=w.plan.days[di]?.ex[ei];if(ex){ex.name=it.pl;ex.group=it.groupEn}w.swap=null}
+  if(f.dataset.form==='wzPickOwn'){const it=findEx(document.getElementById('wz-own').value);if(!it){toast('Nie ma takiego ćwiczenia w bazie');return}const [di,ei]=w.swap||[];const ex=w.plan.days[di]?.ex[ei];if(ex){ex.name=it.pl;ex.group=it.groupEn;ex.sc=undefined;sortDay(w.plan.days[di].ex)}w.swap=null}
   render();
 },true);
 })();
