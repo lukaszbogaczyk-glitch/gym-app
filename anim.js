@@ -247,6 +247,6 @@ const EX={
 const BY_GROUP={'Chest':'benchDb','Back':'row','Shoulders':'ohpDb','Biceps':'curlDb','Triceps':'pushdown','Forearms':'wrist','Quads':'squat','Hamstrings & Glutes':'rdl','Calves':'calf','Core':'crunch','Full Body & Conditioning':'burpee'};
 // statyczne ćwiczenia (trzymanie pozycji) animujemy wolniej i krócej
 const HOLD=new Set(['plank','sidePlank','hollow','hang','wallSit','pinch','hold']);
-window.EXERCISE_ANIM={patterns:P,ex:EX,byGroup:BY_GROUP,hold:HOLD,draw,
+window.EXERCISE_ANIM={patterns:P,ex:EX,byGroup:BY_GROUP,hold:HOLD,draw,pose,G,
   specFor(pl,groupEn){const k=EX[pl]||BY_GROUP[groupEn];return k?{key:k,spec:P[k]}:null}};
 })();
