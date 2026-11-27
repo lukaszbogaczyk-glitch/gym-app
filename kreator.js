@@ -17,13 +17,21 @@ const SPLITS={
   gd:{l:'Góra / Dół',days:n=>Array.from({length:n},(_,i)=>({name:(i%2?'Dół':'Góra')+' '+'AB'[Math.floor(i/2)%2],groups:i%2?'lower':'upper'}))},
   ppl:{l:'Push / Pull / Nogi',days:n=>{const b=[{name:'Push',groups:'push'},{name:'Pull',groups:'pull'},{name:'Nogi',groups:'legs'}];
     if(n===5)return[...b,{name:'Góra',groups:'upper'},{name:'Dół',groups:'lower'}];
-    return Array.from({length:n},(_,i)=>({...b[i%3],name:b[i%3].name+(n>3?' '+'AB'[Math.floor(i/3)]:'')}))}}
+    return Array.from({length:n},(_,i)=>({...b[i%3],name:b[i%3].name+(n>3?' '+'AB'[Math.floor(i/3)]:'')}))}},
+  split:{l:'Split',days:n=>({
+    2:[{name:'Góra',groups:'upper'},{name:'Nogi',groups:'lower'}],
+    3:[{name:'Klatka i triceps',groups:['Chest','Triceps']},{name:'Plecy i biceps',groups:['Back','Biceps','Forearms']},{name:'Nogi i barki',groups:['Quads','Hamstrings & Glutes','Calves','Shoulders','Core','Full Body & Conditioning']}],
+    4:[{name:'Klatka i triceps',groups:['Chest','Triceps']},{name:'Plecy i biceps',groups:['Back','Biceps','Forearms']},{name:'Nogi',groups:'legsNC'},{name:'Barki i brzuch',groups:['Shoulders','Core']}],
+    5:[{name:'Klatka',groups:['Chest']},{name:'Plecy',groups:['Back']},{name:'Barki i brzuch',groups:['Shoulders','Core']},{name:'Ręce',groups:['Biceps','Triceps','Forearms']},{name:'Nogi',groups:'legsNC'}],
+    6:[{name:'Klatka',groups:['Chest']},{name:'Plecy',groups:['Back']},{name:'Barki i brzuch',groups:['Shoulders','Core']},{name:'Ręce',groups:['Biceps','Triceps','Forearms']},{name:'Przód nóg i łydki',groups:['Quads','Calves']},{name:'Tył nóg i pośladki',groups:['Hamstrings & Glutes','Full Body & Conditioning']}]
+  })[n]||[]}
 };
 const DAYGROUPS={
   upper:['Chest','Back','Shoulders','Biceps','Triceps','Forearms'],
   lower:['Quads','Hamstrings & Glutes','Calves','Core','Full Body & Conditioning'],
   push:['Chest','Shoulders','Triceps'],pull:['Back','Biceps','Forearms'],
-  legs:['Quads','Hamstrings & Glutes','Calves','Core','Full Body & Conditioning']
+  legs:['Quads','Hamstrings & Glutes','Calves','Core','Full Body & Conditioning'],
+  legsNC:['Quads','Hamstrings & Glutes','Calves','Full Body & Conditioning']
 };
 const INJ=[
   ['bark','Bark',(i,l)=>(l.df||0)>=3||(l.ds||0)>=3||/nad głow|żołniersk|zza karku|na rękach|rwanie|podrzut|push press|arnold|poręcz/i.test(i.pl)],
@@ -43,6 +51,9 @@ const PRESETS=[['silownia','Pełna siłownia',[]],['dom','Dom z hantlami',['szta
 
 function fresh(){return{step:1,goal:'masa',level:'sred',pr:{},days:3,min:60,split:null,noEq:[],inj:[],mus:{},noEx:[],plan:null,name:'',active:true,swap:null,wish:'',busy:false,err:'',aiNote:''}}
 const W=()=>ui.wiz;
+const serie=n=>n===1?'seria':(n%10>=2&&n%10<=4&&(n%100<12||n%100>14))?'serie':'serii';
+const estTxt=en=>{const n=target(W())[en]||0;return `~${n} ${serie(n)}/tydz.`};
+const estSum=()=>{const n=Object.values(target(W())).reduce((a,b)=>a+b,0);return `~${n} ${serie(n)}/tydz.`};
 const recSplit=n=>n<=3?'fbw':n===4?'gd':'ppl';
 
 /* ---------- priorytety partii (suma 100) ---------- */
@@ -64,13 +75,16 @@ function allowed(){
   return DB_FLAT.filter(i=>{if(w.noEq.includes(i.eq)||no.has(norm(i.pl)))return false;const l=loadOf(i.pl)||{};return !inj.some(x=>x[2](i,l))&&!hitM(l)});
 }
 function score(i,goal){const l=loadOf(i.pl)||{};const big=Object.values(l).filter(v=>v>=2).length;return big+(goal==='sila'&&i.eq==='sztanga'?3:0)+(i.eq==='maszyna'||i.eq==='wyciąg'?-.5:0)}
+function target(w){ // serie na partię w tygodniu z czasu treningu, przerw, poziomu i priorytetów
+  const g=GOALS[w.goal],lv=LEVELS[w.level],perSession=Math.max(8,Math.floor((w.min-8)*60/(g.rest+40))),total=perSession*w.days,o={};
+  Object.entries(w.pr).forEach(([en,p])=>{if(p<=0)return;o[en]=Math.min(lv.cap,Math.max(lv.min,Math.round(total*p/100)))});return o;
+}
 function build(){
   const w=W(),g=GOALS[w.goal],lv=LEVELS[w.level],split=w.split||recSplit(w.days);
-  const days=SPLITS[split].days(w.days).map(d=>({...d,groups:d.groups==='all'?Object.keys(w.pr):DAYGROUPS[d.groups].filter(x=>x in w.pr),ex:[]}));
+  const days=SPLITS[split].days(w.days).map(d=>({...d,groups:d.groups==='all'?Object.keys(w.pr):(Array.isArray(d.groups)?d.groups:DAYGROUPS[d.groups]).filter(x=>x in w.pr),ex:[]}));
   // partie bez dnia (np. wybrany tylko „Brzuch” przy PPL) dopisujemy do dnia z najmniejszą liczbą partii
   Object.keys(w.pr).forEach(en=>{if(!days.some(d=>d.groups.includes(en)))days.slice().sort((a,b)=>a.groups.length-b.groups.length)[0].groups.push(en)});
-  const perSession=Math.max(8,Math.floor((w.min-8)*60/(g.rest+40))),total=perSession*w.days;
-  const weekly={};Object.entries(w.pr).forEach(([en,p])=>{if(p<=0)return;weekly[en]=Math.min(lv.cap,Math.max(lv.min,Math.round(total*p/100)))});
+  const weekly=target(w);
   const pool=allowed(),used={};
   for(const [en,sets] of Object.entries(weekly)){
     const ds=days.filter(d=>d.groups.includes(en));if(!ds.length)continue;
@@ -96,6 +110,13 @@ function build(){
 const ORDER=['Chest','Back','Quads','Hamstrings & Glutes','Shoulders','Triceps','Biceps','Forearms','Calves','Core','Full Body & Conditioning'];
 const gOf=e=>findEx(e.name)?.groupEn||e.group;
 function sortDay(ex){const sc=e=>e.sc??score(findEx(e.name)||{pl:e.name},W().goal);return ex.sort((a,b)=>ORDER.indexOf(gOf(a))-ORDER.indexOf(gOf(b))||sc(b)-sc(a))}
+function ownPicker(cur){
+  const w=W(),gEn=w.ownG||cur,g=DB.find(x=>x.en===gEn)||DB[0],subs=SUBGROUPS[g.en]||[],ok=new Set(allowed().map(i=>i.pl));
+  const opt=i=>`<option value="${esc(i.pl)}">${esc(i.pl)}${ok.has(i.pl)?'':' (wykluczone)'}</option>`;
+  const parts=subs.length?[...subs.map(([l],si)=>[l,g.items.filter(i=>leadSub(i,g.en)===si)]),['Inne',g.items.filter(i=>leadSub(i,g.en)<0)]]:[[g.group,g.items]];
+  return `<form class="wz-own" data-form="wzPickOwn"><select id="wz-own-g" aria-label="Partia">${DB.map(x=>`<option value="${esc(x.en)}"${x.en===g.en?' selected':''}>${esc(x.group)}</option>`).join('')}</select>
+  <select id="wz-own" aria-label="Ćwiczenie">${parts.filter(p=>p[1].length).map(([l,its])=>`<optgroup label="${esc(l)}">${its.map(opt).join('')}</optgroup>`).join('')}</select><button>Wstaw</button></form>`;
+}
 function alternatives(name,groupEn){
   const it=findEx(name),sub=it?leadSub(it,groupEn):-1,inPlan=new Set(W().plan.days.flatMap(d=>d.ex.map(e=>e.name)));
   return allowed().filter(i=>i.groupEn===groupEn&&!inPlan.has(i.pl)).sort((a,b)=>(leadSub(b,groupEn)===sub)-(leadSub(a,groupEn)===sub)||score(b,W().goal)-score(a,W().goal)).slice(0,6);
@@ -114,13 +135,14 @@ function stepBody(){
     return `<h3>Które partie Cię interesują?</h3><p class="muted wz-p">Zaznacz partie, a suwakami rozdziel między nie priorytet. Suma zawsze wynosi 100.</p>
     <div class="row"><button class="ghost" data-act="wzAllGroups">Całe ciało</button>${keys.length?'<button class="ghost" data-act="wzNoGroups">Wyczyść</button>':''}</div>
     <div class="chips">${DB.map(g=>`<button data-act="wzGroup" data-v="${esc(g.en)}" aria-pressed="${g.en in w.pr}"><i class="wz-dot" style="background:${GROUP_COLOR[g.en]}"></i>${esc(g.group)}</button>`).join('')}</div>
-    ${keys.length?`<div class="card wz-sliders">${keys.map(en=>{const g=DB.find(x=>x.en===en);return `<label class="wz-sl" for="wz-pr-${esc(en)}"><span class="wz-sl-h"><span><i class="wz-dot" style="background:${GROUP_COLOR[en]}"></i>${esc(g?g.group:en)}</span><b class="num" data-pr="${esc(en)}">${w.pr[en]}</b></span><input type="range" min="0" max="100" step="1" id="wz-pr-${esc(en)}" data-wzpr="${esc(en)}" value="${w.pr[en]}" style="--c:${GROUP_COLOR[en]}"></label>`}).join('')}
-    <div class="row between wz-sum"><span class="eyebrow">Suma</span><b class="num" id="wz-sum">${sum}</b></div></div>`:'<p class="muted">Zaznacz co najmniej jedną partię.</p>'}`}
+    ${keys.length?`<div class="card wz-sliders">${keys.map(en=>{const g=DB.find(x=>x.en===en);return `<label class="wz-sl" for="wz-pr-${esc(en)}"><span class="wz-sl-h"><span><i class="wz-dot" style="background:${GROUP_COLOR[en]}"></i>${esc(g?g.group:en)}</span><span class="wz-val"><b class="num" data-pr="${esc(en)}">${w.pr[en]}%</b><small class="num" data-est="${esc(en)}">${estTxt(en)}</small></span></span><input type="range" min="0" max="100" step="1" id="wz-pr-${esc(en)}" data-wzpr="${esc(en)}" value="${w.pr[en]}" style="--c:${GROUP_COLOR[en]}"></label>`}).join('')}
+    <div class="row between wz-sum"><span class="eyebrow">Suma</span><span class="wz-val"><b class="num" id="wz-sum">${sum}%</b><small class="num" id="wz-est-sum">${estSum()}</small></span></div>
+    <p class="muted wz-p" style="font-size:.8rem">Serie to szacunek na tydzień dla celu „${GOALS[w.goal].l.toLowerCase()}”, poziomu „${LEVELS[w.level].l.toLowerCase()}” oraz ${w.days} treningów po ${w.min} min. Liczbę i długość treningów ustawisz w kroku 4.</p></div>`:'<p class="muted">Zaznacz co najmniej jedną partię.</p>'}`}
   if(w.step===4){const rec=recSplit(w.days),sp=w.split||rec;
     return `<h3>Ile treningów w tygodniu?</h3><div class="chips">${[2,3,4,5,6].map(n=>`<button data-act="wzDays" data-v="${n}" aria-pressed="${w.days===n}">${n}×</button>`).join('')}</div>
     <h3>Ile minut na trening?</h3><div class="chips">${[30,45,60,75,90].map(n=>`<button data-act="wzMin" data-v="${n}" aria-pressed="${w.min===n}">${n} min</button>`).join('')}</div>
     <h3>Podział</h3><p class="muted wz-p">Przy ${w.days} treningach w tygodniu polecam: <b>${SPLITS[rec].l}</b>. Możesz wybrać inny.</p>
-    <div class="wz-opts">${Object.entries(SPLITS).map(([k,s])=>opt('wzSplit',k,sp===k,s.l+(k===rec?' · polecany':''),k==='fbw'?'Każdy trening obejmuje całe ciało.':k==='gd'?'Na zmianę góra i dół ciała.':'Pchanie, ciągnięcie i nogi w osobne dni.')).join('')}</div>`}
+    <div class="wz-opts">${Object.entries(SPLITS).map(([k,s])=>opt('wzSplit',k,sp===k,s.l+(k===rec?' · polecany':''),k==='fbw'?'Każdy trening obejmuje całe ciało.':k==='gd'?'Na zmianę góra i dół ciała.':k==='ppl'?'Pchanie, ciągnięcie i nogi w osobne dni.':'Każda partia raz w tygodniu, w swoim dniu: '+SPLITS.split.days(w.days).map(d=>d.name.toLowerCase()).join(', ')+'.')).join('')}</div>`}
   if(w.step===5)return `<h3>Jaki sprzęt masz?</h3><p class="muted wz-p">Wyklucz każdy rodzaj sprzętu, którego nie chcesz albo nie masz.</p>
     <div class="row">${PRESETS.map(([k,l,no])=>`<button class="ghost" data-act="wzPreset" data-v="${k}">${l}</button>`).join('')}</div>
     <div class="wz-eq">${EQUIP.map(([k,l])=>{const on=!w.noEq.includes(k);return `<button class="wz-eqb${on?'':' off'}" data-act="wzEq" data-v="${esc(k)}" aria-pressed="${on}">${eqIcon(k)}<span>${l}</span><small>${on?'Używam':'Wykluczony'}</small></button>`}).join('')}</div>
@@ -150,7 +172,7 @@ function stepBody(){
     ${d.ex.map((e,ei)=>{const sw=w.swap&&w.swap[0]===di&&w.swap[1]===ei;const gh=ei===0||gOf(d.ex[ei-1])!==gOf(e);return `${gh?`<div class="wz-gh"><i class="wz-dot" style="background:${GROUP_COLOR[gOf(e)]||'var(--muted)'}"></i>${esc(DB.find(x=>x.en===gOf(e))?.group||'')}</div>`:''}<div class="ex"><div><button class="exlink" data-act="exInfo" data-name="${esc(e.name)}">${esc(e.name)}</button><div class="en">${esc(DB.find(x=>x.en===(findEx(e.name)?.groupEn||e.group))?.group||'')}</div></div>
       <div class="row" style="flex-wrap:nowrap"><span class="num muted">${e.sets}×${e.reps}</span><button class="ghost" data-act="wzSwap" data-d="${di}" data-e="${ei}" aria-expanded="${sw}">Zamień</button><button class="ghost" data-act="wzRmEx" data-d="${di}" data-e="${ei}" aria-label="Usuń ${esc(e.name)}">✕</button></div></div>
       ${sw?`<div class="wz-swap"><div class="eyebrow">Sugerowane zamienniki</div><div class="chips">${alternatives(e.name,findEx(e.name)?.groupEn||e.group).map(a=>`<button data-act="wzPick" data-v="${esc(a.pl)}">${eqIcon(a.eq)}${esc(a.pl)}</button>`).join('')||'<span class="muted">Brak zamienników przy wybranym sprzęcie.</span>'}</div>
-        <form class="row" data-form="wzPickOwn"><input id="wz-own" list="ex-list-wz7" placeholder="Albo wybierz dowolne z bazy" style="flex:1 1 180px"><button>Wstaw</button></form><datalist id="ex-list-wz7">${DB_FLAT.map(i=>`<option value="${esc(i.pl)}">${esc(i.group)}</option>`).join('')}</datalist></div>`:''}`}).join('')||'<p class="muted">Brak ćwiczeń dla tego dnia przy wybranych ustawieniach.</p>'}
+        <div class="eyebrow">Albo wybierz z bazy</div>${ownPicker(gOf(e))}</div>`:''}`}).join('')||'<p class="muted">Brak ćwiczeń dla tego dnia przy wybranych ustawieniach.</p>'}
   </div>`).join('')}
   <div class="card stack"><h3>Dopracuj z AI</h3><p class="muted wz-p">AI może poprawić dobór ćwiczeń, kolejność i objętość. Opcjonalnie dopisz życzenia.</p>
     <textarea id="wz-wish" placeholder="Np. więcej ćwiczeń na górę klatki, bez skłonów, krótsze treningi w piątek">${esc(w.wish)}</textarea>
@@ -232,7 +254,7 @@ document.addEventListener('click',e=>{
   else if(a==='wzMus'){w.mus=w.mus||{};const n=((w.mus[v]||0)+1)%3;if(n)w.mus[v]=n;else delete w.mus[v];dirty()}
   else if(a==='wzInj'){w.inj=w.inj.includes(v)?w.inj.filter(x=>x!==v):[...w.inj,v];dirty()}
   else if(a==='wzRmNoEx'){w.noEx=w.noEx.filter(x=>x!==v);dirty()}
-  else if(a==='wzSwap'){const k=[+b.dataset.d,+b.dataset.e];w.swap=w.swap&&w.swap[0]===k[0]&&w.swap[1]===k[1]?null:k}
+  else if(a==='wzSwap'){w.ownG=null;const k=[+b.dataset.d,+b.dataset.e];w.swap=w.swap&&w.swap[0]===k[0]&&w.swap[1]===k[1]?null:k}
   else if(a==='wzPick'){const [di,ei]=w.swap||[];const ex=w.plan.days[di]?.ex[ei];const it=findEx(v);if(ex&&it){ex.name=it.pl;ex.group=it.groupEn;ex.sc=undefined;sortDay(w.plan.days[di].ex)}w.swap=null}
   else if(a==='wzRmEx'){w.plan.days[+b.dataset.d].ex.splice(+b.dataset.e,1);w.swap=null}
   else if(a==='wzRebuild'){if(w.busy)return;w.plan=null;w.aiNote='';w.err='';build()}
@@ -246,13 +268,15 @@ document.addEventListener('input',e=>{
   if(!ui.wiz)return;const t=e.target,w=W();
   if(t.dataset.wzpr){const en=t.dataset.wzpr;w.pr[en]=+t.value;normalize(w.pr,en);w.plan=null;
     document.querySelectorAll('[data-wzpr]').forEach(s=>{if(s!==t)s.value=w.pr[s.dataset.wzpr]});
-    document.querySelectorAll('[data-pr]').forEach(x=>x.textContent=w.pr[x.dataset.pr]);
-    const sm=document.getElementById('wz-sum');if(sm)sm.textContent=Object.values(w.pr).reduce((s,x)=>s+x,0)}
+    document.querySelectorAll('[data-pr]').forEach(x=>x.textContent=w.pr[x.dataset.pr]+'%');
+    document.querySelectorAll('[data-est]').forEach(x=>x.textContent=estTxt(x.dataset.est));
+    const sm=document.getElementById('wz-sum');if(sm)sm.textContent=Object.values(w.pr).reduce((s,x)=>s+x,0)+'%';
+    const es=document.getElementById('wz-est-sum');if(es)es.textContent=estSum()}
   if(t.id==='wz-name')w.name=t.value;
   if(t.id==='wz-wish')w.wish=t.value;
   if(t.id==='wz-active')w.active=t.checked;
 });
-document.addEventListener('change',e=>{if(ui.wiz&&e.target.id==='wz-active')ui.wiz.active=e.target.checked});
+document.addEventListener('change',e=>{if(!ui.wiz)return;if(e.target.id==='wz-active')ui.wiz.active=e.target.checked;if(e.target.id==='wz-own-g'){ui.wiz.ownG=e.target.value;render()}});
 document.addEventListener('submit',e=>{
   const f=e.target;if(!ui.wiz||!f.dataset.form?.startsWith('wz'))return;e.preventDefault();e.stopImmediatePropagation();const w=W();
   if(f.dataset.form==='wzNoEx'){const it=findEx(document.getElementById('wz-noex').value);if(!it){toast('Nie ma takiego ćwiczenia w bazie');return}if(!w.noEx.includes(it.pl))w.noEx.push(it.pl);w.plan=null}
