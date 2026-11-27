@@ -33,9 +33,15 @@ const INJ=[
   ['kolano','Kolano',(i,l)=>/przysiad|wykrok|bułgarsk|skok|pistolet|sissy|prostowanie nóg|wejścia|thruster|burpee/i.test(i.pl)],
   ['biodro','Biodro',(i,l)=>/sumo|odwodzenie|przywodzenie|wykrok|bułgarsk|pistolet/i.test(i.pl)]
 ];
+// mięśnie: 1 = odciąż (pomijam ćwiczenia, w których mięsień pracuje jako główny), 2 = omijaj (pomijam też te, w których pomaga)
+const MUSC=[['klatka','Klatka piersiowa',['cu','cm','cl']],['barki','Naramienne (barki)',['df','ds','dr']],['kaptury','Czworoboczny (kaptury)',['tu','tm','tl']],
+  ['najszerszy','Najszerszy grzbietu',['la']],['rotatory','Rotatory barku',['ro']],['biceps','Biceps i ramienny',['bl','bs','br']],['triceps','Triceps',['tlo','tla','tme']],
+  ['przedramie','Przedramię',['ff','fe','brr']],['prostownik','Prostownik grzbietu',['er']],['brzuch','Brzuch i skośne',['ab','ob']],['posladki','Pośladki',['gx','gm']],
+  ['czworoglowy','Czworogłowy uda',['rf','vl','vm']],['dwuglowy','Dwugłowy uda (tył uda)',['bf','se']],['przywodziciele','Przywodziciele',['ad']],['lydki','Łydki',['gmd','glt','so','ti']]];
+const MUS_L={1:'Odciąż',2:'Omijaj'};
 const PRESETS=[['silownia','Pełna siłownia',[]],['dom','Dom z hantlami',['sztanga','wyciąg','maszyna']],['bw','Masa ciała',['sztanga','hantle','kettlebell','wyciąg','maszyna','inne']]];
 
-function fresh(){return{step:1,goal:'masa',level:'sred',pr:{},days:3,min:60,split:null,noEq:[],inj:[],noEx:[],plan:null,name:'',active:true,swap:null,wish:'',busy:false,err:'',aiNote:''}}
+function fresh(){return{step:1,goal:'masa',level:'sred',pr:{},days:3,min:60,split:null,noEq:[],inj:[],mus:{},noEx:[],plan:null,name:'',active:true,swap:null,wish:'',busy:false,err:'',aiNote:''}}
 const W=()=>ui.wiz;
 const recSplit=n=>n<=3?'fbw':n===4?'gd':'ppl';
 
@@ -53,8 +59,9 @@ function toggleGroup(en){const w=W();if(en in w.pr)delete w.pr[en];else{const n=
 
 /* ---------- dobór ćwiczeń ---------- */
 function allowed(){
-  const w=W(),no=new Set(w.noEx.map(norm)),inj=INJ.filter(x=>w.inj.includes(x[0]));
-  return DB_FLAT.filter(i=>!w.noEq.includes(i.eq)&&!no.has(norm(i.pl))&&!inj.some(x=>x[2](i,loadOf(i.pl)||{})));
+  const w=W(),no=new Set(w.noEx.map(norm)),inj=INJ.filter(x=>w.inj.includes(x[0])),mus=MUSC.filter(m=>w.mus?.[m[0]]);
+  const hitM=l=>mus.some(m=>m[2].some(id=>(l[id]||0)>=(w.mus[m[0]]===2?2:3)));
+  return DB_FLAT.filter(i=>{if(w.noEq.includes(i.eq)||no.has(norm(i.pl)))return false;const l=loadOf(i.pl)||{};return !inj.some(x=>x[2](i,l))&&!hitM(l)});
 }
 function score(i,goal){const l=loadOf(i.pl)||{};const big=Object.values(l).filter(v=>v>=2).length;return big+(goal==='sila'&&i.eq==='sztanga'?3:0)+(i.eq==='maszyna'||i.eq==='wyciąg'?-.5:0)}
 function build(){
@@ -114,8 +121,10 @@ function stepBody(){
     <div class="row">${PRESETS.map(([k,l,no])=>`<button class="ghost" data-act="wzPreset" data-v="${k}">${l}</button>`).join('')}</div>
     <div class="wz-eq">${EQUIP.map(([k,l])=>{const on=!w.noEq.includes(k);return `<button class="wz-eqb${on?'':' off'}" data-act="wzEq" data-v="${esc(k)}" aria-pressed="${on}">${eqIcon(k)}<span>${l}</span><small>${on?'Używam':'Wykluczony'}</small></button>`}).join('')}</div>
     <p class="muted wz-p">Dostępnych ćwiczeń: <b class="num">${allowed().length}</b> z ${DB_FLAT.length}.</p>`;
-  if(w.step===6)return `<h3>Kontuzje i ograniczenia</h3><p class="muted wz-p">Zaznacz, co Ci dokucza. Pominę ćwiczenia, które najmocniej obciążają to miejsce.</p>
-    <div class="chips">${INJ.map(([k,l])=>`<button data-act="wzInj" data-v="${k}" aria-pressed="${w.inj.includes(k)}">${l}</button>`).join('')}</div>
+  if(w.step===6)return `<h3>Kontuzje i ograniczenia</h3><p class="muted wz-p">Zaznacz stawy i mięśnie, które Ci dokuczają. Pominę ćwiczenia, które najmocniej je obciążają.</p>
+    <div class="eyebrow">Stawy</div><div class="chips wz-wrap">${INJ.map(([k,l])=>`<button data-act="wzInj" data-v="${k}" aria-pressed="${w.inj.includes(k)}">${l}</button>`).join('')}</div>
+    <div class="eyebrow">Mięśnie</div><p class="muted wz-p">Stuknij raz, żeby <b>odciążyć</b> mięsień (pominę ćwiczenia, w których pracuje jako główny). Stuknij drugi raz, żeby go <b>omijać</b> (pominę też te, w których pomaga). Trzecie stuknięcie zdejmuje ograniczenie.</p>
+    <div class="chips wz-wrap">${MUSC.map(([k,l])=>{const st=w.mus?.[k]||0;return `<button class="wz-mus${st?' s'+st:''}" data-act="wzMus" data-v="${k}" aria-pressed="${!!st}">${l}${st?` <small>· ${MUS_L[st]}</small>`:''}</button>`}).join('')}</div>
     <h3>Ćwiczenia, których nie robisz</h3>
     <form class="row" data-form="wzNoEx"><input id="wz-noex" list="ex-list-wz" placeholder="Zacznij pisać nazwę ćwiczenia" style="flex:1 1 180px"><button>Wyklucz</button></form>
     <datalist id="ex-list-wz">${DB_FLAT.map(i=>`<option value="${esc(i.pl)}">`).join('')}</datalist>
@@ -161,7 +170,7 @@ async function aiPlan(){
   const prompt=`Jesteś doświadczonym trenerem personalnym. Dopracuj plan treningowy na siłownię. Odpowiadasz po polsku.
 Cel: ${GOALS[w.goal].l} (${GOALS[w.goal].range} powtórzeń). Poziom: ${LEVELS[w.level].l}. Treningi: ${w.days} w tygodniu po ok. ${w.min} min. Podział: ${SPLITS[w.plan.split].l}.
 Priorytety partii (suma 100): ${Object.entries(w.pr).map(([k,v])=>k+' '+v).join(', ')}.
-Wykluczony sprzęt: ${w.noEq.join(', ')||'brak'}. Kontuzje: ${INJ.filter(x=>w.inj.includes(x[0])).map(x=>x[1]).join(', ')||'brak'}. Wykluczone ćwiczenia: ${w.noEx.join(', ')||'brak'}.
+Wykluczony sprzęt: ${w.noEq.join(', ')||'brak'}. Kontuzje stawów: ${INJ.filter(x=>w.inj.includes(x[0])).map(x=>x[1]).join(', ')||'brak'}. Mięśnie do odciążenia lub omijania: ${MUSC.filter(m=>w.mus?.[m[0]]).map(m=>m[1]+' ('+MUS_L[w.mus[m[0]]].toLowerCase()+')').join(', ')||'brak'}. Wykluczone ćwiczenia: ${w.noEx.join(', ')||'brak'}.
 ${w.wish?`Życzenia użytkownika: "${w.wish.replace(/"/g,"'")}"`:''}
 Obecny plan (JSON): ${JSON.stringify(w.plan.days.map(d=>({name:d.name,exercises:d.ex.map(e=>({name:e.name,sets:e.sets,reps:e.reps}))})))}
 Używaj WYŁĄCZNIE ćwiczeń z tej listy, nazwy przepisuj dokładnie: ${names}.
@@ -203,6 +212,7 @@ document.addEventListener('click',e=>{
   else if(a==='wzSplit'){w.split=v;dirty()}
   else if(a==='wzEq'){w.noEq=w.noEq.includes(v)?w.noEq.filter(x=>x!==v):[...w.noEq,v];dirty()}
   else if(a==='wzPreset'){w.noEq=(PRESETS.find(p=>p[0]===v)||[,,[]])[2].slice();dirty()}
+  else if(a==='wzMus'){w.mus=w.mus||{};const n=((w.mus[v]||0)+1)%3;if(n)w.mus[v]=n;else delete w.mus[v];dirty()}
   else if(a==='wzInj'){w.inj=w.inj.includes(v)?w.inj.filter(x=>x!==v):[...w.inj,v];dirty()}
   else if(a==='wzRmNoEx'){w.noEx=w.noEx.filter(x=>x!==v);dirty()}
   else if(a==='wzSwap'){const k=[+b.dataset.d,+b.dataset.e];w.swap=w.swap&&w.swap[0]===k[0]&&w.swap[1]===k[1]?null:k}
