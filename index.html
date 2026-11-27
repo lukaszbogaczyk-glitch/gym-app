@@ -85,14 +85,13 @@ svg.chart text{fill:var(--muted);font-family:var(--f-num);font-size:10px}
 .seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;position:sticky;top:8px;z-index:5}
 .seg button{border:0;background:transparent;border-radius:9px;padding:8px 4px;font-size:.88rem;color:var(--muted)}
 .seg button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
-.plans{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}
+.plans{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
 .plancard{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;text-align:left;padding:10px 12px;border-radius:12px}
-.plancard[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset;background:var(--soft)}
+.plancard .pc-go{font-size:1.5rem;line-height:1;color:var(--muted);font-weight:400}
+.back{padding:4px 0;color:var(--accent)}
 .plancard .pc-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
 .plancard .pc-txt b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .plancard small{color:var(--muted);font-weight:500;font-size:.78rem}
-.plancard .pc-days{grid-column:1/-1;display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:8px;font-weight:400;font-size:.8rem;color:var(--muted)}
-.plancard .pc-days b{display:block;color:var(--ink);font-weight:600;font-size:.86rem}
 .planhead h2{margin:0}
 .install{border-color:var(--accent);background:var(--soft)}
 .chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
@@ -587,12 +586,13 @@ function viewPlanuj(){
   ${body}`;
 }
 function viewPlans(){
-  const sel=S.plans.find(p=>p.id===ui.planId)||activePlan()||S.plans[0];ui.planId=sel?.id||null;
+  // lista planów; dni i ich dodawanie dopiero po wejściu w konkretny plan
+  const sel=S.plans.find(p=>p.id===ui.planId)||null;ui.planId=sel?.id||null;
   const cnt=p=>p.days.reduce((a,d)=>a+d.exercises.length,0);
-  return `<section class="stack"><div class="row between"><h2>Twoje plany</h2><button data-act="addPlan">+ Nowy plan</button></div>
-  ${S.plans.length?`<div class="plans">${S.plans.map(p=>`<button class="plancard" data-act="pickPlan" data-id="${p.id}" aria-pressed="${p.id===ui.planId}">${bodyMap(planGroups(p),54)}<span class="pc-txt"><b>${esc(p.name)}</b><small>${p.days.length} ${p.days.length===1?'dzień':'dni'} · ${cnt(p)} ćw.</small></span>${p.id===S.activePlan?'<span class="chip good">Aktywny</span>':'<span></span>'}${p.days.length?`<span class="pc-days">${p.days.map(d=>`<span><b>${esc(d.name)}</b>${esc(d.exercises.map(e=>e.name).join(' · '))||'brak ćwiczeń'}</span>`).join('')}</span>`:''}</button>`).join('')}</div>`
-   :'<div class="card"><p class="muted" style="margin:0">Nie masz jeszcze żadnego planu. Utwórz pierwszy, np. „Push Pull Legs” albo „FBW 3× w tygodniu”.</p></div>'}</section>
-  ${sel?`<section class="stack"><div class="card planhead">
+  if(!sel)return `<section class="stack"><div class="row between"><h2>Twoje plany</h2><button data-act="addPlan">+ Nowy plan</button></div>
+  ${S.plans.length?`<div class="plans">${S.plans.map(p=>`<button class="plancard" data-act="pickPlan" data-id="${p.id}" aria-label="Otwórz plan ${esc(p.name)}">${bodyMap(planGroups(p),54)}<span class="pc-txt"><b>${esc(p.name)}</b><small>${p.days.length} ${p.days.length===1?'dzień':'dni'} · ${cnt(p)} ćw.</small></span><span class="row" style="gap:6px;flex-wrap:nowrap">${p.id===S.activePlan?'<span class="chip good">Aktywny</span>':''}<span class="pc-go" aria-hidden="true">›</span></span></button>`).join('')}</div>`
+   :'<div class="card"><p class="muted" style="margin:0">Nie masz jeszcze żadnego planu. Utwórz pierwszy, np. „Push Pull Legs” albo „FBW 3× w tygodniu”.</p></div>'}</section>`;
+  return `<section class="stack"><div><button class="ghost back" data-act="closePlan">‹ Wszystkie plany</button></div><div class="card planhead">
     ${ui.editPlan===sel.id?`<form class="row" data-form="planName" data-id="${sel.id}"><input id="pn-${sel.id}" value="${esc(sel.name)}" style="flex:1" aria-label="Nazwa planu" required><button class="primary">Zapisz</button></form>`
      :`<div class="row between"><div><div class="eyebrow">${sel.id===S.activePlan?'Aktywny plan · w nim trenujesz':'Plan'}</div><h2>${esc(sel.name)}</h2></div>${sel.id===S.activePlan?'':`<button class="primary" data-act="activatePlan" data-id="${sel.id}">Trenuj tym planem</button>`}</div>
     <div class="row"><button class="ghost" data-act="editPlan" data-id="${sel.id}">Zmień nazwę</button><button class="ghost" data-act="dupPlan" data-id="${sel.id}">Duplikuj</button>${ui.confirmRmPlan===sel.id?`<button class="danger" data-act="rmPlan" data-id="${sel.id}">Tak, usuń plan</button><button class="ghost" data-act="cancelRmPlan">Anuluj</button>`:`<button class="ghost danger" data-act="askRmPlan" data-id="${sel.id}">Usuń plan</button>`}</div>`}
@@ -604,7 +604,7 @@ function viewPlans(){
     <div class="row between">${ui.editDay===d.id?`<input id="dn-${d.id}" value="${esc(d.name)}" style="flex:1"><button data-act="saveDay" data-id="${d.id}">OK</button>`:`<h3>${esc(d.name)}</h3><span class="row"><button class="ghost" data-act="editDay" data-id="${d.id}">Zmień nazwę</button><button class="ghost danger" data-act="rmDay" data-id="${d.id}">Usuń</button></span>`}</div>
     <div>${d.exercises.map(e=>`<div class="ex"><div><button class="exlink" data-act="exInfo" data-name="${esc(e.name)}">${esc(e.name)}</button>${enName(e.name)?`<div class="en">${esc(enName(e.name))}</div>`:''}</div><div class="row"><span class="num muted">${e.sets}×${e.reps}</span><button class="ghost" data-act="rmEx" data-id="${d.id}" data-ex="${e.id}" aria-label="Usuń ćwiczenie">✕</button></div></div>`).join('')||'<p class="muted">Dodaj pierwsze ćwiczenie.</p>'}</div>
     <form class="row" data-form="addEx" data-id="${d.id}"><input id="en-${d.id}" list="ex-list" placeholder="Nowe ćwiczenie (zacznij pisać)" style="flex:1 1 160px" required><input id="es-${d.id}" class="num" inputmode="numeric" value="3" style="width:52px" aria-label="Serie"><span class="muted">×</span><input id="er-${d.id}" class="num" inputmode="numeric" value="10" style="width:52px" aria-label="Powtórzenia"><button>Dodaj</button></form>
-  </div>`).join('')||'<p class="muted">Ten plan nie ma jeszcze dni. Dodaj pierwszy, np. „Dzień A · Góra”.</p>'}</section>`:''}`;
+  </div>`).join('')||'<p class="muted">Ten plan nie ma jeszcze dni. Dodaj pierwszy, np. „Dzień A · Góra”.</p>'}</section>`;
 }
 function viewUstawienia(){
   return `${installCard(false)}
@@ -725,7 +725,8 @@ document.addEventListener('click',e=>{
   else if(a==='cancelClear'){ui.confirmClear=false}
   else if(a==='clearAll'){S={...S,example:false,sessions:[],bodyweight:[],notes:[]};ui.confirmClear=false;save();toast('Wyczyszczono historię. Plany zostały.')}
   else if(a==='sub'){ui.sub=b.dataset.s;scrollTo(0,0)}
-  else if(a==='pickPlan'){ui.planId=id;ui.editPlan=null;ui.confirmRmPlan=null;ui.target=null}
+  else if(a==='pickPlan'){ui.planId=id;ui.editPlan=null;ui.confirmRmPlan=null;ui.editDay=null;ui.target=null;scrollTo(0,0)}
+  else if(a==='closePlan'){ui.planId=null;ui.editPlan=null;ui.confirmRmPlan=null;ui.editDay=null;scrollTo(0,0)}
   else if(a==='addPlan'){const p={id:uid(),name:'Nowy plan',days:[]};S.plans.push(p);if(!S.activePlan)S.activePlan=p.id;ui.planId=p.id;ui.editPlan=p.id;save()}
   else if(a==='editPlan'){ui.editPlan=id}
   else if(a==='activatePlan'){S.activePlan=id;save();toast('Trenujesz teraz planem: '+S.plans.find(p=>p.id===id).name)}
