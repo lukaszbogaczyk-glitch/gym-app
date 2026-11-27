@@ -1,10 +1,11 @@
 // Dziennik z Excela: import planu, historii serii, wagi i notatek z pliku .xlsx oraz eksport w tym samym układzie.
 // Biblioteka SheetJS ładuje się dopiero po wybraniu pliku (z cdnjs), więc nie spowalnia aplikacji.
 (function(){
-const XLSX_URL='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+// czytnik Excela: najpierw kopia w aplikacji (vendor/), awaryjnie z cdnjs
+const XLSX_SRC=['vendor/xlsx.full.min.js','https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'];
 let libP=null;
-const lib=()=>window.XLSX?Promise.resolve(window.XLSX):libP||(libP=new Promise((res,rej)=>{const s=document.createElement('script');s.src=XLSX_URL;s.onload=()=>res(window.XLSX);s.onerror=()=>{libP=null;rej(new Error('Nie udało się pobrać czytnika Excela. Sprawdź internet.'))};document.head.appendChild(s)}));
-
+const loadScript=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=()=>window.XLSX?res(window.XLSX):rej(new Error('brak XLSX'));s.onerror=()=>{s.remove();rej(new Error('nie wczytano '+src))};document.head.appendChild(s)});
+const lib=()=>window.XLSX?Promise.resolve(window.XLSX):libP||(libP=XLSX_SRC.reduce((p,src)=>p.catch(()=>loadScript(src)),Promise.reject()).catch(()=>{libP=null;throw new Error('Nie udało się wczytać czytnika Excela. Zamknij i otwórz aplikację przy włączonym internecie, potem spróbuj jeszcze raz.')}));
 const pl=(n,a,b,c)=>n===1?a:(n%10>=2&&n%10<=4&&(n%100<12||n%100>14))?b:c;
 const DAYS=['ND','PON','WT','ŚR','CZW','PT','SB'];
 const low=s=>String(s??'').trim().toLowerCase().replace(/\s+/g,' ');
@@ -170,14 +171,15 @@ window.xlSection=function(){const x=ui.xl||{};const s=x.sum;
 // pole wyboru pliku żyje poza ekranem aplikacji: render() po kliknięciu nie może go podmienić, bo wtedy wybór pliku ginie
 let picker=null;
 function pickFile(){
-  if(!picker){picker=document.createElement('input');picker.type='file';picker.id='xl-file';picker.accept='.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel';
+  ui.xl=null;
+  if(!picker){picker=document.createElement('input');picker.type='file';picker.id='xl-file';
     picker.style.cssText='position:fixed;left:-9999px;width:1px;height:1px;opacity:0';document.body.appendChild(picker);
     picker.addEventListener('change',()=>{const f=picker.files[0];picker.value='';if(f)readFile(f)})}
   picker.click();
 }
 async function readFile(f){ui.xl={busy:true,file:f.name};render();
   try{const X=await lib();const wb=X.read(await f.arrayBuffer(),{cellDates:true});const data=parse(wb);if(!data.sessions.length&&!data.days.length)throw new Error('Nie znalazłem w pliku arkuszy „Plan” ani „Log”.');ui.xl={file:f.name,data,sum:summary(data)}}
-  catch(err){ui.xl={err:err?.message||'Nie udało się odczytać pliku.'}}render()}
+  catch(err){ui.xl={err:(err?.message||'Nie udało się odczytać pliku.')+(/czytnika/.test(err?.message||'')?'':` (plik: ${f.name})`)}}render()}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
   if(a==='xlPick'){pickFile();return}
   if(a==='xlCancel')ui.xl=null;
