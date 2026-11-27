@@ -8,9 +8,9 @@ const GOALS={
   forma:{l:'Ogólna forma',d:'Zdrowie i sprawność. 10–15 powtórzeń, umiarkowana objętość.',reps:12,range:'10–15',rest:60,spe:3}
 };
 const LEVELS={
-  pocz:{l:'Początkujący',d:'Do roku regularnych treningów.',cap:10,top:12,small:6,min:4},
-  sred:{l:'Średniozaawansowany',d:'1–3 lata, znasz technikę podstawowych ćwiczeń.',cap:12,top:16,small:8,min:4},
-  zaaw:{l:'Zaawansowany',d:'Ponad 3 lata, większa objętość na priorytet.',cap:14,top:20,small:10,min:6}
+  pocz:{l:'Początkujący',d:'Do roku regularnych treningów.',ps:12},
+  sred:{l:'Średniozaawansowany',d:'1–3 lata, znasz technikę podstawowych ćwiczeń.',ps:16},
+  zaaw:{l:'Zaawansowany',d:'Ponad 3 lata, większa objętość.',ps:20}
 };
 const SPLITS={
   fbw:{l:'FBW (całe ciało)',days:n=>Array.from({length:n},(_,i)=>({name:'FBW '+'ABC'[i%3],groups:'all'}))},
@@ -49,25 +49,22 @@ const MUSC=[['klatka','Klatka piersiowa',['cu','cm','cl']],['barki','Naramienne 
 const MUS_L={1:'Odciąż',2:'Omijaj'};
 const PRESETS=[['silownia','Pełna siłownia',[]],['dom','Dom z hantlami',['sztanga','wyciąg','maszyna']],['bw','Masa ciała',['sztanga','hantle','kettlebell','wyciąg','maszyna','inne']]];
 
-function fresh(){return{step:1,goal:'masa',level:'sred',pr:{},days:3,min:60,split:null,noEq:[],inj:[],mus:{},noEx:[],plan:null,name:'',active:true,swap:null,wish:'',busy:false,err:'',aiNote:''}}
+function fresh(){return{step:1,goal:'masa',level:'sred',pr:{},ps:null,days:3,min:60,split:null,noEq:[],inj:[],mus:{},noEx:[],plan:null,name:'',active:true,swap:null,wish:'',busy:false,err:'',aiNote:''}}
 const W=()=>ui.wiz;
 const serie=n=>n===1?'seria':(n%10>=2&&n%10<=4&&(n%100<12||n%100>14))?'serie':'serii';
-const estTxt=en=>{const n=target(W())[en]||0;return `~${n} ${serie(n)}/tydz.`};
-const estSum=()=>{const n=Object.values(target(W())).reduce((a,b)=>a+b,0);return `~${n} ${serie(n)}/tydz.`};
+const PART_MAX=20; // maks. serii na partię w tygodniu
+const perSes=w=>w.ps||LEVELS[w.level].ps;
+const budget=w=>perSes(w)*w.days;
+const leftTxt=w=>{const n=budget(w)-used(w);return n>0?`zostało ${n} ${serie(n)}`:'cała pula rozdzielona'};
+const used=w=>Object.values(w.pr).reduce((a,b)=>a+b,0);
+const fitTime=w=>Math.max(6,Math.floor((w.min-8)*60/(GOALS[w.goal].rest+40)));
 const recSplit=n=>n<=3?'fbw':n===4?'gd':'ppl';
 
-/* ---------- priorytety partii (suma 100) ---------- */
-function normalize(pr,fixed){
-  const keys=Object.keys(pr);if(!keys.length)return pr;
-  const others=keys.filter(k=>k!==fixed),left=100-(fixed?pr[fixed]:0),sum=others.reduce((s,k)=>s+pr[k],0);
-  others.forEach(k=>pr[k]=sum>0?pr[k]*left/sum:left/others.length);
-  keys.forEach(k=>pr[k]=Math.max(0,Math.round(pr[k])));
-  const diff=100-keys.reduce((s,k)=>s+pr[k],0);
-  if(diff){const t=(others.length?others:keys).slice().sort((a,b)=>pr[b]-pr[a])[0];pr[t]=Math.max(0,pr[t]+diff)}
-  return pr;
-}
-function toggleGroup(en){const w=W();if(en in w.pr)delete w.pr[en];else{const n=Object.keys(w.pr).length+1;w.pr[en]=100/n}normalize(w.pr,(en in w.pr)?en:null);w.plan=null}
-
+/* ---------- serie na partię z puli tygodniowej (serie na trening × dni) ---------- */
+function evenSplit(w){const keys=Object.keys(w.pr);if(!keys.length)return;const B=budget(w),per=Math.min(PART_MAX,Math.floor(B/keys.length));let extra=Math.min(B-per*keys.length,keys.length);keys.forEach(k=>{w.pr[k]=per+(per<PART_MAX&&extra-->0?1:0)})}
+function fitBudget(w){const B=budget(w),u=used(w);if(u<=B)return;const keys=Object.keys(w.pr);keys.forEach(k=>w.pr[k]=Math.floor(w.pr[k]*B/u))}
+function toggleGroup(en){const w=W();if(en in w.pr)delete w.pr[en];else{const n=Object.keys(w.pr).length+1;w.pr[en]=Math.max(0,Math.min(PART_MAX,Math.floor(budget(w)/n),budget(w)-used(w)))}w.plan=null}
+function setPart(w,en,v){v=Math.round(+v||0);const room=budget(w)-used(w)+(w.pr[en]||0);w.pr[en]=Math.max(0,Math.min(PART_MAX,room,v));return w.pr[en]}
 /* ---------- dobór ćwiczeń ---------- */
 function allowed(){
   const w=W(),no=new Set(w.noEx.map(norm)),inj=INJ.filter(x=>w.inj.includes(x[0])),mus=MUSC.filter(m=>w.mus?.[m[0]]);
@@ -75,13 +72,7 @@ function allowed(){
   return DB_FLAT.filter(i=>{if(w.noEq.includes(i.eq)||no.has(norm(i.pl)))return false;const l=loadOf(i.pl)||{};return !inj.some(x=>x[2](i,l))&&!hitM(l)});
 }
 function score(i,goal){const l=loadOf(i.pl)||{};const big=Object.values(l).filter(v=>v>=2).length;return big+(goal==='sila'&&i.eq==='sztanga'?3:0)+(i.eq==='maszyna'||i.eq==='wyciąg'?-.5:0)}
-const SMALL_G=['Forearms','Calves','Core'];
-function target(w){ // serie na partię w tygodniu z czasu treningu, przerw, poziomu i priorytetów
-  const g=GOALS[w.goal],lv=LEVELS[w.level],perSession=Math.max(8,Math.floor((w.min-8)*60/(g.rest+40))),total=perSession*w.days,o={};
-  // limity: partia priorytetowa (najwyższy % i wyraźnie ponad równy podział) do lv.top, reszta do lv.cap, małe partie (łydki, przedramiona, brzuch) do lv.small
-  const ent=Object.entries(w.pr).filter(([,p])=>p>0),mx=Math.max(0,...ent.map(([,p])=>p)),eq=100/Math.max(1,ent.length);
-  ent.forEach(([en,p])=>{const cap=SMALL_G.includes(en)?lv.small:p===mx&&(ent.length===1||p>=eq*1.5)?lv.top:lv.cap;o[en]=Math.min(cap,Math.max(Math.min(lv.min,cap),Math.round(total*p/100)))});return o;
-}
+function target(w){fitBudget(w);const o={};Object.entries(w.pr).forEach(([en,n])=>{if(n>0)o[en]=n});return o}
 function build(){
   const w=W(),g=GOALS[w.goal],lv=LEVELS[w.level],split=w.split||recSplit(w.days);
   const days=SPLITS[split].days(w.days).map(d=>({...d,groups:d.groups==='all'?Object.keys(w.pr):(Array.isArray(d.groups)?d.groups:DAYGROUPS[d.groups]).filter(x=>x in w.pr),ex:[]}));
@@ -133,14 +124,16 @@ const opt=(act,val,on,title,desc)=>`<button class="wz-opt${on?' on':''}" data-ac
 function stepBody(){
   const w=W();
   if(w.step===1)return `<h3>Jaki jest Twój cel?</h3><p class="muted wz-p">Od celu zależą zakresy powtórzeń i długość przerw.</p><div class="wz-opts">${Object.entries(GOALS).map(([k,g])=>opt('wzGoal',k,w.goal===k,g.l,g.d)).join('')}</div>`;
-  if(w.step===2)return `<h3>Jak długo trenujesz?</h3><p class="muted wz-p">Poziom ustala górny limit serii na partię w tygodniu.</p><div class="wz-opts">${Object.entries(LEVELS).map(([k,l])=>opt('wzLevel',k,w.level===k,l.l,`${l.d} Priorytet do ${l.top}, reszta do ${l.cap} serii.`)).join('')}</div>`;
-  if(w.step===4){const keys=Object.keys(w.pr),sum=keys.reduce((s,k)=>s+w.pr[k],0);
-    return `<h3>Które partie Cię interesują?</h3><p class="muted wz-p">Zaznacz partie, a suwakami rozdziel między nie priorytet. Suma zawsze wynosi 100.</p>
-    <div class="row"><button class="ghost" data-act="wzAllGroups">Całe ciało</button>${keys.length?'<button class="ghost" data-act="wzNoGroups">Wyczyść</button>':''}</div>
+  if(w.step===2)return `<h3>Jak długo trenujesz?</h3><p class="muted wz-p">Poziom ustala, ile serii masz do dyspozycji na jeden trening. Zmienisz to w kroku 4.</p><div class="wz-opts">${Object.entries(LEVELS).map(([k,l])=>opt('wzLevel',k,w.level===k,l.l,`${l.d} Do ${l.ps} serii na trening.`)).join('')}</div>`;
+  if(w.step===4){fitBudget(w);const keys=Object.keys(w.pr),B=budget(w),ft=fitTime(w);
+    return `<h3>Które partie Cię interesują?</h3><p class="muted wz-p">Masz pulę serii na tydzień. Zaznacz partie i rozdziel między nie serie suwakiem albo wpisz liczbę. Jedna partia może dostać do ${PART_MAX} serii.</p>
+    <div class="card wz-pool"><div class="row between"><label for="wz-ps"><b>Serii na trening</b></label><input type="number" inputmode="numeric" id="wz-ps" min="4" max="40" value="${perSes(w)}" class="wz-num"></div>
+    <div class="row between"><span class="muted">× ${w.days} ${w.days<5?'treningi':'treningów'} w tygodniu</span><b class="num">= ${B} ${serie(B)}/tydz.</b></div>
+    ${perSes(w)>ft?`<p class="muted wz-p" style="font-size:.8rem;margin:0">Przy ${w.min} min i przerwach ok. ${GOALS[w.goal].rest} s zmieści się ok. ${ft} serii na trening.</p>`:''}</div>
+    <div class="row"><button class="ghost" data-act="wzAllGroups">Całe ciało</button>${keys.length?'<button class="ghost" data-act="wzEven">Rozdziel równo</button><button class="ghost" data-act="wzNoGroups">Wyczyść</button>':''}</div>
     <div class="chips wz-wrap">${DB.map(g=>`<button data-act="wzGroup" data-v="${esc(g.en)}" aria-pressed="${g.en in w.pr}"><i class="wz-dot" style="background:${GROUP_COLOR[g.en]}"></i>${esc(g.group)}</button>`).join('')}</div>
-    ${keys.length?`<div class="card wz-sliders">${keys.map(en=>{const g=DB.find(x=>x.en===en);return `<label class="wz-sl" for="wz-pr-${esc(en)}"><span class="wz-sl-h"><span><i class="wz-dot" style="background:${GROUP_COLOR[en]}"></i>${esc(g?g.group:en)}</span><span class="wz-val"><b class="num" data-pr="${esc(en)}">${w.pr[en]}%</b><small class="num" data-est="${esc(en)}">${estTxt(en)}</small></span></span><input type="range" min="0" max="100" step="1" id="wz-pr-${esc(en)}" data-wzpr="${esc(en)}" value="${w.pr[en]}" style="--c:${GROUP_COLOR[en]}"></label>`}).join('')}
-    <div class="row between wz-sum"><span class="eyebrow">Suma</span><span class="wz-val"><b class="num" id="wz-sum">${sum}%</b><small class="num" id="wz-est-sum">${estSum()}</small></span></div>
-    <p class="muted wz-p" style="font-size:.8rem">Serie to szacunek na tydzień dla celu „${GOALS[w.goal].l.toLowerCase()}”, poziomu „${LEVELS[w.level].l.toLowerCase()}” oraz ${w.days} treningów po ${w.min} min. Liczbę i długość treningów zmienisz w kroku 3.</p></div>`:'<p class="muted">Zaznacz co najmniej jedną partię.</p>'}`}
+    ${keys.length?`<div class="card wz-sliders">${keys.map(en=>{const g=DB.find(x=>x.en===en);return `<div class="wz-sl"><span class="wz-sl-h"><label for="wz-pr-${esc(en)}"><i class="wz-dot" style="background:${GROUP_COLOR[en]}"></i>${esc(g?g.group:en)}</label><span class="wz-val"><input type="number" inputmode="numeric" min="0" max="${PART_MAX}" class="wz-num" data-wzn="${esc(en)}" value="${w.pr[en]}" aria-label="Serie: ${esc(g?g.group:en)}"><small>serii/tydz.</small></span></span><input type="range" min="0" max="${PART_MAX}" step="1" id="wz-pr-${esc(en)}" data-wzpr="${esc(en)}" value="${w.pr[en]}" style="--c:${GROUP_COLOR[en]}"></div>`}).join('')}
+    <div class="row between wz-sum"><span class="eyebrow">Rozdzielone</span><span class="wz-val"><b class="num" id="wz-sum">${used(w)} z ${B}</b><small class="num" id="wz-left">${leftTxt(w)}</small></span></div></div>`:'<p class="muted">Zaznacz co najmniej jedną partię.</p>'}`}
   if(w.step===3){const rec=recSplit(w.days),sp=w.split||rec;
     return `<h3>Ile treningów w tygodniu?</h3><div class="chips">${[2,3,4,5,6].map(n=>`<button data-act="wzDays" data-v="${n}" aria-pressed="${w.days===n}">${n}×</button>`).join('')}</div>
     <h3>Ile minut na trening?</h3><div class="chips">${[30,45,60,75,90].map(n=>`<button data-act="wzMin" data-v="${n}" aria-pressed="${w.min===n}">${n} min</button>`).join('')}</div>
@@ -188,7 +181,7 @@ function stepBody(){
 }
 window.viewKreator=function(){
   const w=W();
-  const can=w.step!==4||Object.keys(w.pr).length>0;
+  const can=w.step!==4||used(w)>0;
   return `<section class="stack wz"><div class="row between"><button class="ghost back" data-act="wzClose">‹ Wyjdź z kreatora</button><span class="eyebrow">Krok ${w.step} z 7</span></div>
   <div><div class="eyebrow">Kreator planu</div><h2>${STEPS[w.step-1]}</h2></div>
   <ol class="wz-steps" aria-label="Kroki kreatora">${STEPS.map((s,i)=>`<li class="${i+1<w.step?'done':i+1===w.step?'on':''}"><button data-act="wzGo" data-v="${i+1}" ${i+1>w.step&&!can?'disabled':''} aria-label="Krok ${i+1}: ${s}"${i+1===w.step?' aria-current="step"':''}></button></li>`).join('')}</ol>
@@ -203,11 +196,11 @@ async function aiPlan(mode){
   const ws=weeklySets();
   const prompt=`Jesteś doświadczonym trenerem personalnym. ${create?'Ułóż od podstaw tygodniowy plan treningowy na siłownię na podstawie odpowiedzi z kreatora.':'Dopracuj plan treningowy na siłownię.'} Odpowiadasz po polsku.
 Cel: ${GOALS[w.goal].l} (${GOALS[w.goal].range} powtórzeń). Poziom: ${LEVELS[w.level].l}. Treningi: ${w.days} w tygodniu po ok. ${w.min} min. Podział: ${SPLITS[w.plan.split].l}.
-Priorytety partii (suma 100): ${Object.entries(w.pr).map(([k,v])=>k+' '+v).join(', ')}.
+Pula: ${perSes(w)} serii na trening, ${budget(w)} w tygodniu.
 Wykluczony sprzęt: ${w.noEq.join(', ')||'brak'}. Kontuzje stawów: ${INJ.filter(x=>w.inj.includes(x[0])).map(x=>x[1]).join(', ')||'brak'}. Mięśnie do odciążenia lub omijania: ${MUSC.filter(m=>w.mus?.[m[0]]).map(m=>m[1]+' ('+MUS_L[w.mus[m[0]]].toLowerCase()+')').join(', ')||'brak'}. Wykluczone ćwiczenia: ${w.noEx.join(', ')||'brak'}.
 ${w.wish?`Życzenia użytkownika: "${w.wish.replace(/"/g,"'")}"`:''}
 ${create?`Dni treningowe (zachowaj kolejność i nazwy): ${w.plan.days.map(d=>d.name).join(', ')}.
-Docelowe serie na partię w tygodniu (wyliczone z czasu treningu i priorytetów, możesz lekko skorygować): ${Object.entries(ws).map(([k,v])=>k+' '+v).join(', ')}.
+Serie na partię w tygodniu ustawione przez użytkownika (trzymaj się ich, różnica najwyżej 1 seria): ${Object.entries(target(w)).map(([k,v])=>k+' '+v).join(', ')}.
 Mieść się w ok. ${w.min} min na trening przy przerwach ok. ${GOALS[w.goal].rest} s. Na początku dnia ćwiczenia wielostawowe, potem izolowane. Unikaj powtarzania tych samych ćwiczeń w różnych dniach, jeśli jest wybór.
 Szkic do porównania (JSON): `:'Obecny plan (JSON): '}${JSON.stringify(w.plan.days.map(d=>({name:d.name,exercises:d.ex.map(e=>({name:e.name,sets:e.sets,reps:e.reps}))})))}
 Używaj WYŁĄCZNIE ćwiczeń z tej listy, nazwy przepisuj dokładnie: ${names}.
@@ -245,9 +238,10 @@ document.addEventListener('click',e=>{
   else if(a==='wzGo'){const n=+v;if(n>=1&&n<=7){const fresh7=n===7&&!w.plan;if(n===7&&!w.plan)build();w.step=n;scrollTo(0,0);if(fresh7&&aiOn())runAI('create')}}
   else if(a==='wzAICreate'){runAI('create')}
   else if(a==='wzGoal'){w.goal=v;dirty()}
-  else if(a==='wzLevel'){w.level=v;dirty()}
+  else if(a==='wzLevel'){w.level=v;w.ps=null;dirty()}
   else if(a==='wzGroup'){toggleGroup(v);dirty()}
-  else if(a==='wzAllGroups'){w.pr={};DB.forEach(g=>w.pr[g.en]=1);normalize(w.pr);dirty()}
+  else if(a==='wzAllGroups'){w.pr={};DB.forEach(g=>w.pr[g.en]=0);evenSplit(w);dirty()}
+  else if(a==='wzEven'){evenSplit(w);dirty()}
   else if(a==='wzNoGroups'){w.pr={};dirty()}
   else if(a==='wzDays'){w.days=+v;w.split=null;dirty()}
   else if(a==='wzMin'){w.min=+v;dirty()}
@@ -269,17 +263,17 @@ document.addEventListener('click',e=>{
 },true);
 document.addEventListener('input',e=>{
   if(!ui.wiz)return;const t=e.target,w=W();
-  if(t.dataset.wzpr){const en=t.dataset.wzpr;w.pr[en]=+t.value;normalize(w.pr,en);w.plan=null;
-    document.querySelectorAll('[data-wzpr]').forEach(s=>{if(s!==t)s.value=w.pr[s.dataset.wzpr]});
-    document.querySelectorAll('[data-pr]').forEach(x=>x.textContent=w.pr[x.dataset.pr]+'%');
-    document.querySelectorAll('[data-est]').forEach(x=>x.textContent=estTxt(x.dataset.est));
-    const sm=document.getElementById('wz-sum');if(sm)sm.textContent=Object.values(w.pr).reduce((s,x)=>s+x,0)+'%';
-    const es=document.getElementById('wz-est-sum');if(es)es.textContent=estSum()}
+  if(t.dataset.wzpr||t.dataset.wzn){const en=t.dataset.wzpr||t.dataset.wzn;if(t.dataset.wzn&&t.value==='')return;const n=setPart(w,en,t.value);w.plan=null;
+    if(t.dataset.wzpr)t.value=n;
+    document.querySelectorAll(`[data-wzpr="${CSS.escape(en)}"],[data-wzn="${CSS.escape(en)}"]`).forEach(x=>{if(x!==t)x.value=n});
+    const sm=document.getElementById('wz-sum');if(sm)sm.textContent=used(w)+' z '+budget(w);
+    const lf=document.getElementById('wz-left');if(lf)lf.textContent=leftTxt(w)}
+  if(t.id==='wz-ps'&&t.value!==''){w.ps=Math.max(4,Math.min(40,Math.round(+t.value)||4));w.plan=null}
   if(t.id==='wz-name')w.name=t.value;
   if(t.id==='wz-wish')w.wish=t.value;
   if(t.id==='wz-active')w.active=t.checked;
 });
-document.addEventListener('change',e=>{if(!ui.wiz)return;if(e.target.id==='wz-active')ui.wiz.active=e.target.checked;if(e.target.id==='wz-own-g'){ui.wiz.ownG=e.target.value;render()}});
+document.addEventListener('change',e=>{if(!ui.wiz)return;if(e.target.id==='wz-active')ui.wiz.active=e.target.checked;if(e.target.id==='wz-own-g'){ui.wiz.ownG=e.target.value;render()}if(e.target.id==='wz-ps'||e.target.dataset.wzn){const y=scrollY;render();scrollTo(0,y)}});
 document.addEventListener('submit',e=>{
   const f=e.target;if(!ui.wiz||!f.dataset.form?.startsWith('wz'))return;e.preventDefault();e.stopImmediatePropagation();const w=W();
   if(f.dataset.form==='wzNoEx'){const it=findEx(document.getElementById('wz-noex').value);if(!it){toast('Nie ma takiego ćwiczenia w bazie');return}if(!w.noEx.includes(it.pl))w.noEx.push(it.pl);w.plan=null}
