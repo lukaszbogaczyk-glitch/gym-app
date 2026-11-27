@@ -180,10 +180,11 @@ svg.chart text{fill:var(--muted);font-family:var(--f-num);font-size:10px}
 .lm-zsvg{width:100%;height:100%;min-height:220px;max-height:340px}
 .lm-tag{position:absolute;left:10px;top:8px;font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;font-weight:700;color:var(--muted)}
 .lm-full{display:flex;flex-direction:column;gap:4px;justify-content:center}
-.lm-full figure{margin:0;display:flex;flex-direction:column;align-items:center;opacity:.55;border-radius:10px;padding:2px 4px}
-.lm-full figure.on{opacity:1;background:var(--bg)}
+.lm-zwrap{display:grid}.lm-zoom[hidden]{display:none}
+.lm-fig{margin:0;display:flex;flex-direction:column;align-items:center;opacity:.55;border-radius:10px;padding:4px 6px;background:none;border:1px solid transparent;color:inherit;font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.lm-fig.on{opacity:1;background:var(--bg);border-color:var(--line)}
 .lm-full svg{height:104px;width:auto}
-.lm-full figcaption{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.lm-cap{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .lm-list{display:flex;flex-direction:column;gap:6px;font-size:.86rem}
 .lm-row{display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:baseline}
 .lm-key{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:.78rem}
@@ -407,22 +408,25 @@ function loadMap(name){
   const o={base:'var(--body)',skin:'var(--skin)',line:'var(--surface)',sw:.7};
   const score=v=>M[v].reduce((a,[id])=>a+(load[id]||0)**2,0);
   const main=score('back')>score('front')?'back':'front';
-  // zbliżenie: prostokąt obejmujący mięśnie główne i pomocnicze (obie strony ciała)
-  let b=[1e9,1e9,-1e9,-1e9];
-  M[main].forEach(([id,d])=>{if((load[id]||0)>=2){const[x0,y0,x1,y1]=pathBox(d);b=[Math.min(b[0],x0,100-x1),Math.min(b[1],y0),Math.max(b[2],x1,100-x0),Math.max(b[3],y1)]}});
-  if(b[0]>b[2])b=[0,0,100,196];
-  let w=b[2]-b[0]+18,h=b[3]-b[1]+18,cx=(b[0]+b[2])/2,cy=(b[1]+b[3])/2;
-  w=Math.max(w,36);h=Math.max(h,30);if(w/h<1.2)w=h*1.2;else h=w/1.2;
-  // numerowane znaczniki na pracujących aktonach (lewa strona sylwetki), te same numery na liście
+  // numery wspólne dla obu widoków; znacznik tam, gdzie akton widać
   const order=Object.keys(load).sort((a,c)=>load[c]-load[a]);const num={};let k=0;
-  order.forEach(id=>{const pth=M[main].find(x=>x[0]===id);if(pth)num[id]={n:++k,box:pathBox(pth[1])}});
-  const r=Math.max(w*.034,1.9);
-  const marks=Object.entries(num).map(([id,{n,box}])=>{const x=(box[0]+box[2])/2,y=(box[1]+box[3])/2;return `<g class="lm-mark"><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(2)}" fill="var(--ink)" stroke="#fff" stroke-width="1.4" vector-effect="non-scaling-stroke"/><text x="${x.toFixed(1)}" y="${(y+r*.38).toFixed(2)}" font-size="${(r*1.1).toFixed(2)}" text-anchor="middle" fill="var(--surface)" font-weight="700">${n}</text></g>`}).join('');
-  const zoom=`<svg viewBox="${(cx-w/2).toFixed(1)} ${(cy-h/2).toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)}" class="lm-zsvg" role="img" aria-label="Zbliżenie na pracujące mięśnie">${heatView(main,load,{...o,sw:1.6})}${marks}</svg>`;
-  const full=v=>`<figure class="${v===main?'on':''}"><svg viewBox="0 0 100 196" height="170" width="87" aria-hidden="true">${heatView(v,load,o)}</svg><figcaption>${v==='front'?'Przód':'Tył'}</figcaption></figure>`;
-  const list=[3,2,1].map(k=>{const ids=Object.keys(load).filter(id=>load[id]===k);return ids.length?`<div class="lm-row"><span class="lm-key"><i style="background:${HEAT[k]}"></i>${HEAT_L[k]}</span><span class="lm-names">${ids.map(id=>`<span>${num[id]?`<b class="lm-n">${num[id].n}</b>`:''}${esc(M.muscles[id][0])}</span>`).join('')}</span></div>`:''}).join('');
+  order.forEach(id=>{if(M.front.some(x=>x[0]===id)||M.back.some(x=>x[0]===id))num[id]=++k});
+  const zoomFor=v=>{
+    // zbliżenie: prostokąt obejmujący najmocniej pracujące mięśnie widoku (obie strony ciała)
+    let b=[1e9,1e9,-1e9,-1e9];
+    const top=Math.max(0,...M[v].map(([id])=>load[id]||0)),lim=Math.min(2,top);
+    if(top)M[v].forEach(([id,d])=>{if((load[id]||0)>=lim){const[x0,y0,x1,y1]=pathBox(d);b=[Math.min(b[0],x0,100-x1),Math.min(b[1],y0),Math.max(b[2],x1,100-x0),Math.max(b[3],y1)]}});
+    if(b[0]>b[2])b=[0,0,100,196];
+    let w=b[2]-b[0]+18,h=b[3]-b[1]+18,cx=(b[0]+b[2])/2,cy=(b[1]+b[3])/2;
+    w=Math.max(w,36);h=Math.max(h,30);if(w/h<1.2)w=h*1.2;else h=w/1.2;
+    const r=Math.max(w*.034,1.9);
+    const marks=order.map(id=>{const pth=M[v].find(x=>x[0]===id);if(!pth)return'';const box=pathBox(pth[1]),n=num[id],x=(box[0]+box[2])/2,y=(box[1]+box[3])/2;return `<g class="lm-mark"><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(2)}" fill="var(--ink)" stroke="#fff" stroke-width="1.4" vector-effect="non-scaling-stroke"/><text x="${x.toFixed(1)}" y="${(y+r*.38).toFixed(2)}" font-size="${(r*1.1).toFixed(2)}" text-anchor="middle" fill="var(--surface)" font-weight="700">${n}</text></g>`}).join('');
+    return `<div class="lm-zoom" data-v="${v}"${v===main?'':' hidden'}><svg viewBox="${(cx-w/2).toFixed(1)} ${(cy-h/2).toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)}" class="lm-zsvg" role="img" aria-label="Zbliżenie na pracujące mięśnie, ${v==='front'?'przód':'tył'}">${heatView(v,load,{...o,sw:1.6})}${marks}</svg><span class="lm-tag">Zbliżenie · ${v==='front'?'przód':'tył'}</span></div>`;
+  };
+  const full=v=>`<button type="button" class="lm-fig${v===main?' on':''}" data-act="lmView" data-v="${v}" aria-pressed="${v===main}" aria-label="Pokaż zbliżenie: ${v==='front'?'przód':'tył'}"><svg viewBox="0 0 100 196" height="170" width="87" aria-hidden="true">${heatView(v,load,{...o,notitle:true})}</svg><span class="lm-cap">${v==='front'?'Przód':'Tył'}</span></button>`;
+  const list=[3,2,1].map(k=>{const ids=Object.keys(load).filter(id=>load[id]===k);return ids.length?`<div class="lm-row"><span class="lm-key"><i style="background:${HEAT[k]}"></i>${HEAT_L[k]}</span><span class="lm-names">${ids.map(id=>`<span>${num[id]?`<b class="lm-n">${num[id]}</b>`:''}${esc(M.muscles[id][0])}</span>`).join('')}</span></div>`:''}).join('');
   return `<section class="stack" style="gap:8px"><h3>Mapa obciążenia</h3>
-  <div class="lm"><div class="lm-zoom">${zoom}<span class="lm-tag">Zbliżenie · ${main==='front'?'przód':'tył'}</span></div><div class="lm-full">${full('front')}${full('back')}</div></div>
+  <div class="lm"><div class="lm-zwrap">${zoomFor('front')}${zoomFor('back')}</div><div class="lm-full">${full('front')}${full('back')}</div></div>
   <div class="lm-list">${list}</div></section>`;
 }
 /* ---------- animacja ruchu na pełnym ekranie ---------- */
@@ -889,6 +893,7 @@ document.addEventListener('click',e=>{
   else if(a==='split'){ui.split=b.dataset.s}
   else if(a==='exInfo'){ui.exInfo=b.dataset.name;document.getElementById('sheet').innerHTML=exSheet();document.querySelector('.sheet .primary')?.focus();return}
   else if(a==='exClose'){ui.exInfo=null;document.getElementById('sheet').innerHTML='';return}
+  else if(a==='lmView'){const lm=b.closest('.lm');lm.querySelectorAll('.lm-zoom').forEach(z=>z.hidden=z.dataset.v!==b.dataset.v);lm.querySelectorAll('.lm-fig').forEach(f=>{const on=f===b;f.classList.toggle('on',on);f.setAttribute('aria-pressed',on)});return}
   else if(a==='animOpen'){animOpen(b.dataset.name);return}
   else if(a==='animClose'){animClose();return}
   else if(a==='animPause'){anim.paused=!anim.paused;b.textContent=anim.paused?'Wznów':'Pauza';return}
