@@ -85,12 +85,14 @@ svg.chart text{fill:var(--muted);font-family:var(--f-num);font-size:10px}
 .seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;position:sticky;top:8px;z-index:5}
 .seg button{border:0;background:transparent;border-radius:9px;padding:8px 4px;font-size:.88rem;color:var(--muted)}
 .seg button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
-.plans{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.plans{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}
 .plancard{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;text-align:left;padding:10px 12px;border-radius:12px}
 .plancard[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset;background:var(--soft)}
 .plancard .pc-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
 .plancard .pc-txt b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .plancard small{color:var(--muted);font-weight:500;font-size:.78rem}
+.plancard .pc-days{grid-column:1/-1;display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:8px;font-weight:400;font-size:.8rem;color:var(--muted)}
+.plancard .pc-days b{display:block;color:var(--ink);font-weight:600;font-size:.86rem}
 .planhead h2{margin:0}
 .install{border-color:var(--accent);background:var(--soft)}
 .chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
@@ -588,7 +590,7 @@ function viewPlans(){
   const sel=S.plans.find(p=>p.id===ui.planId)||activePlan()||S.plans[0];ui.planId=sel?.id||null;
   const cnt=p=>p.days.reduce((a,d)=>a+d.exercises.length,0);
   return `<section class="stack"><div class="row between"><h2>Twoje plany</h2><button data-act="addPlan">+ Nowy plan</button></div>
-  ${S.plans.length?`<div class="plans">${S.plans.map(p=>`<button class="plancard" data-act="pickPlan" data-id="${p.id}" aria-pressed="${p.id===ui.planId}">${bodyMap(planGroups(p),54)}<span class="pc-txt"><b>${esc(p.name)}</b><small>${p.days.length} ${p.days.length===1?'dzień':'dni'} · ${cnt(p)} ćw.</small></span>${p.id===S.activePlan?'<span class="chip good">Aktywny</span>':''}</button>`).join('')}</div>`
+  ${S.plans.length?`<div class="plans">${S.plans.map(p=>`<button class="plancard" data-act="pickPlan" data-id="${p.id}" aria-pressed="${p.id===ui.planId}">${bodyMap(planGroups(p),54)}<span class="pc-txt"><b>${esc(p.name)}</b><small>${p.days.length} ${p.days.length===1?'dzień':'dni'} · ${cnt(p)} ćw.</small></span>${p.id===S.activePlan?'<span class="chip good">Aktywny</span>':'<span></span>'}${p.days.length?`<span class="pc-days">${p.days.map(d=>`<span><b>${esc(d.name)}</b>${esc(d.exercises.map(e=>e.name).join(' · '))||'brak ćwiczeń'}</span>`).join('')}</span>`:''}</button>`).join('')}</div>`
    :'<div class="card"><p class="muted" style="margin:0">Nie masz jeszcze żadnego planu. Utwórz pierwszy, np. „Push Pull Legs” albo „FBW 3× w tygodniu”.</p></div>'}</section>
   ${sel?`<section class="stack"><div class="card planhead">
     ${ui.editPlan===sel.id?`<form class="row" data-form="planName" data-id="${sel.id}"><input id="pn-${sel.id}" value="${esc(sel.name)}" style="flex:1" aria-label="Nazwa planu" required><button class="primary">Zapisz</button></form>`
