@@ -3,7 +3,7 @@
   "short_name": "Siłownia",
   "description": "Plan treningowy, zapis treningów, postępy, porady i obserwacje.",
   "lang": "pl",
-  "start_url": "./#trening",
+  "start_url": "./#trenuj",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
@@ -15,7 +15,7 @@
     { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
-    { "name": "Zacznij trening", "url": "./#trening" },
-    { "name": "Baza ćwiczeń", "url": "./#baza" }
+    { "name": "Trenuj", "url": "./#trenuj" },
+    { "name": "Planuj", "url": "./#planuj" }
   ]
 }
